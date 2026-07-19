@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">RetroTV</string>
+    <string name="settings">Настройки</string>
+    <string name="add_rom">Добавить ром</string>
+    <string name="empty_hint">Игр пока нет.\nСкопируйте ромы (.nes, .sfc, .smc, .md, .gen, .bin, .smd или .zip) в папку «Download» на телевизоре\nи нажмите «+» справа вверху, чтобы добавить игру.</string>
+    <string name="importing">Копирую ром в память приложения…</string>
+    <string name="import_failed">Не удалось добавить игру</string>
+    <string name="pause">Пауза</string>
+    <string name="resume">Продолжить</string>
+    <string name="save_state">Сохранить</string>
+    <string name="load_state">Загрузить</string>
+    <string name="filter">Фильтр картинки</string>
+    <string name="filter_fmt">Фильтр: %1$s</string>
+    <string name="exit_to_menu">Выйти в меню</string>
+    <string name="saved">Сохранено</string>
+    <string name="loaded">Загружено</string>
+    <string name="no_save">Сохранения ещё нет</string>
+    <string name="default_filter">Фильтр картинки по умолчанию</string>
+    <string name="f_sharp">Чёткие пиксели</string>
+    <string name="f_smooth">Сглаживание (апскейл)</string>
+    <string name="f_crt">CRT (кинескоп)</string>
+    <string name="f_lcd">LCD</string>
+    <string name="ff_speed">Скорость перемотки (удержание R2)</string>
+    <string name="storage">Память</string>
+    <string name="clear_states">Удалить все сохранения</string>
+</resources>

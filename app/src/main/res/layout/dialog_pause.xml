@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="360dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@color/bg"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/pause"
+        android:textColor="@color/text"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp" />
+
+    <Button android:id="@+id/btnResume" style="@style/PauseButton"
+        android:text="@string/resume" />
+    <Button android:id="@+id/btnSave" style="@style/PauseButton"
+        android:text="@string/save_state" />
+    <Button android:id="@+id/btnLoad" style="@style/PauseButton"
+        android:text="@string/load_state" />
+    <Button android:id="@+id/btnFilter" style="@style/PauseButton"
+        android:text="@string/filter" />
+    <Button android:id="@+id/btnExit" style="@style/PauseButton"
+        android:text="@string/exit_to_menu" />
+</LinearLayout>

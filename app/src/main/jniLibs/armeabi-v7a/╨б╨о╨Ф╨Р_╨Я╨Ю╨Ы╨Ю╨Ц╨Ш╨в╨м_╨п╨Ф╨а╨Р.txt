@@ -1,0 +1,3 @@
+Сюда положите 32-битные ядра (для старых TCL), переименованные так же:
+  libfceumm.so / libsnes9x.so / libgenesis.so
+Скачать: https://buildbot.libretro.com/nightly/android/latest/armeabi-v7a/

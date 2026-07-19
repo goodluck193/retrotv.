@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="40dp">
+
+        <TextView style="@style/SettingsHeader" android:text="@string/settings" android:textSize="26sp" />
+
+        <TextView style="@style/SettingsHeader" android:layout_marginTop="24dp"
+            android:text="@string/default_filter" />
+        <RadioGroup android:id="@+id/filterGroup"
+            android:layout_width="wrap_content" android:layout_height="wrap_content">
+            <RadioButton android:id="@+id/fSharp" style="@style/SettingsRadio" android:text="@string/f_sharp" />
+            <RadioButton android:id="@+id/fSmooth" style="@style/SettingsRadio" android:text="@string/f_smooth" />
+            <RadioButton android:id="@+id/fCrt" style="@style/SettingsRadio" android:text="@string/f_crt" />
+            <RadioButton android:id="@+id/fLcd" style="@style/SettingsRadio" android:text="@string/f_lcd" />
+        </RadioGroup>
+
+        <TextView style="@style/SettingsHeader" android:layout_marginTop="24dp"
+            android:text="@string/ff_speed" />
+        <RadioGroup android:id="@+id/ffGroup"
+            android:layout_width="wrap_content" android:layout_height="wrap_content">
+            <RadioButton android:id="@+id/ff2" style="@style/SettingsRadio" android:text="2x" />
+            <RadioButton android:id="@+id/ff3" style="@style/SettingsRadio" android:text="3x" />
+            <RadioButton android:id="@+id/ff4" style="@style/SettingsRadio" android:text="4x" />
+        </RadioGroup>
+
+        <TextView style="@style/SettingsHeader" android:layout_marginTop="24dp"
+            android:text="@string/storage" />
+        <TextView android:id="@+id/storageInfo"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:textColor="@color/text_dim" android:textSize="15sp" />
+
+        <Button android:id="@+id/btnClearStates" style="@style/PauseButton"
+            android:layout_marginTop="16dp"
+            android:layout_width="wrap_content"
+            android:text="@string/clear_states" />
+    </LinearLayout>
+</ScrollView>

@@ -1,0 +1,6 @@
+Сюда положите 64-битные ядра, переименованные так:
+  libfceumm.so    (NES)      <- fceumm_libretro_android.so
+  libsnes9x.so    (SNES)     <- snes9x_libretro_android.so
+  libgenesis.so   (Sega MD)  <- genesis_plus_gx_libretro_android.so
+Скачать: https://buildbot.libretro.com/nightly/android/latest/arm64-v8a/
+(каждый файл лежит в .zip — распакуйте и переименуйте)
