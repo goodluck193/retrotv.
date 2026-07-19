@@ -11,8 +11,8 @@ android {
         applicationId = "com.retrotv.emu"
         minSdk = 26          // Android 8.0+ (типичные TCL Android TV)
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 5
+        versionName = "1.4"
         ndk {
             // TCL бывают и 32-битные, и 64-битные — собираем оба ABI
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
@@ -42,7 +42,7 @@ android {
 dependencies {
     // Эмуляционное ядро-обвязка (libretro для Android). При проблемах со сборкой
     // проверьте актуальный тег на https://github.com/Swordfish90/LibretroDroid/releases
-    implementation("com.github.Swordfish90:LibretroDroid:0.12.0")
+    implementation("com.github.Swordfish90:LibretroDroid:0.14.0")
 
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.7.0")

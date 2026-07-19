@@ -13,7 +13,11 @@ import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.retrotv.emu.Prefs.audioLowLatency
 import com.retrotv.emu.Prefs.defaultFilter
+import com.retrotv.emu.Prefs.renderHeight
+import com.retrotv.emu.Prefs.rewindEnabled
+import com.retrotv.emu.Prefs.smoothLevel
 import com.swordfish.libretrodroid.GLRetroView
 import com.swordfish.libretrodroid.GLRetroViewData
 import com.swordfish.libretrodroid.ShaderConfig
@@ -31,11 +35,10 @@ class GameActivity : AppCompatActivity() {
         const val EXTRA_ROM_PATH = "rom_path"
         const val EXTRA_SYSTEM_ID = "system_id"
 
-        // Ограничения буфера перемотки назад (защита памяти ТВ)
-        private const val REWIND_SNAPSHOT_MS = 1000L      // снимок раз в секунду
-        private const val REWIND_MAX_SNAPSHOTS = 15       // ~15 секунд назад
-        private const val REWIND_MAX_BYTES = 48L * 1024 * 1024
-        private const val REWIND_STEP_MS = 120L           // скорость отмотки
+        // Отмотка назад: один лёгкий снимок раз в 10 секунд, максимум два в памяти.
+        // Так нагрузка и расход памяти минимальны — никаких утечек и зависаний.
+        private const val REWIND_SNAPSHOT_MS = 10_000L
+        private const val REWIND_MAX_SNAPSHOTS = 2
 
         // Состояние для восстановления после смены фильтра
         private var pendingResumeState: ByteArray? = null
@@ -49,17 +52,18 @@ class GameActivity : AppCompatActivity() {
     private var thumbLDown = false
     private var thumbRDown = false
     private var l2Held = false
+    private var rewindOn = true
 
-    // --- Перемотка назад ---
-    private val rewindBuffer = ArrayDeque<ByteArray>()
-    private var rewindBytes = 0L
-    private var rewinding = false
+    // --- Отмотка назад (R2 = прыжок на ~10-20 секунд) ---
+    private val rewindSlots = ArrayDeque<ByteArray>()
+    private var snapshotBusy = false
     private var snapshotJob: Job? = null
-    private var rewindJob: Job? = null
+    private var r2Held = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        requestSixtyHz()
         hideSystemUi()
 
         val romPath = intent.getStringExtra(EXTRA_ROM_PATH)
@@ -82,8 +86,8 @@ class GameActivity : AppCompatActivity() {
             systemDirectory = File(filesDir, "system").apply { mkdirs() }.absolutePath
             savesDirectory = File(filesDir, "sram").apply { mkdirs() }.absolutePath
             shader = shaderFor(currentFilter)
-            // ВАЖНО: режим низкой задержки на многих ТВ даёт треск — отключён
-            preferLowLatencyAudio = false
+            // Режим звука выбирается в настройках: на разных ТВ лучше разный
+            preferLowLatencyAudio = audioLowLatency
             rumbleEventsEnabled = false
         }
 
@@ -104,7 +108,23 @@ class GameActivity : AppCompatActivity() {
         )
         setContentView(root)
 
-        startSnapshots()
+        // Ограничение разрешения рендера: на 4K-панелях полный рендер
+        // перегружает GPU телевизора, кадры не успевают и звук трещит.
+        // 720p для пиксельной графики неотличим, а нагрузка падает в разы.
+        val targetH = renderHeight
+        if (targetH > 0) {
+            view.addOnLayoutChangeListener { v, l, tTop, r, b, _, _, _, _ ->
+                val w = r - l
+                val h = b - tTop
+                if (h > targetH && w > 0) {
+                    val scaledW = (w.toLong() * targetH / h).toInt()
+                    try { view.holder.setFixedSize(scaledW, targetH) } catch (_: Exception) { }
+                }
+            }
+        }
+
+        rewindOn = rewindEnabled
+        if (rewindOn) startSnapshots()
 
         // Восстановление после смены фильтра
         pendingResumeState?.let { state ->
@@ -122,16 +142,48 @@ class GameActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         snapshotJob?.cancel()
-        rewindJob?.cancel()
-        rewindBuffer.clear()
+        rewindSlots.clear()
         super.onDestroy()
     }
 
     private fun shaderFor(id: String): ShaderConfig = when (id) {
-        Prefs.FILTER_SMOOTH -> ShaderConfig.Default
+        Prefs.FILTER_SMOOTH -> when (smoothLevel) {
+            "light" -> ShaderConfig.CUT(useDynamicBlend = false, staticSharpness = 0.75f)
+            "medium" -> ShaderConfig.CUT(useDynamicBlend = false, staticSharpness = 0.4f)
+            "strong" -> ShaderConfig.Default // билинейное, самое размытое
+            else -> ShaderConfig.CUT2()      // умный апскейл: сглаживает без «мыла»
+        }
         Prefs.FILTER_CRT -> ShaderConfig.CRT
         Prefs.FILTER_LCD -> ShaderConfig.LCD
         else -> ShaderConfig.Sharp
+    }
+
+    /**
+     * Игры NES/SNES/Sega работают в 60 Гц. Если панель ТВ находится в режиме
+     * 50 Гц (частая настройка по умолчанию в PAL-регионах), звук постоянно
+     * рассинхронизируется и трещит. Просим систему переключить экран на 60 Гц
+     * на время игры.
+     */
+    private fun requestSixtyHz() {
+        try {
+            @Suppress("DEPRECATION")
+            val display = windowManager.defaultDisplay ?: return
+            val current = display.mode
+            val target = display.supportedModes
+                .filter {
+                    it.physicalWidth == current.physicalWidth &&
+                    it.physicalHeight == current.physicalHeight
+                }
+                .minByOrNull { abs(it.refreshRate - 60f) }
+            val lp = window.attributes
+            if (target != null && abs(target.refreshRate - 60f) < 1f) {
+                lp.preferredDisplayModeId = target.modeId
+            } else {
+                @Suppress("DEPRECATION")
+                lp.preferredRefreshRate = 60f
+            }
+            window.attributes = lp
+        } catch (_: Exception) { }
     }
 
     private fun hideSystemUi() {
@@ -146,45 +198,45 @@ class GameActivity : AppCompatActivity() {
     // ПЕРЕМОТКА НАЗАД (удержание R2)
     // ------------------------------------------------------------------
 
-    /** Раз в секунду тихо запоминаем состояние игры (кольцевой буфер ~15 сек). */
+    /** Раз в 10 секунд тихо запоминаем состояние игры (в памяти максимум два снимка). */
     private fun startSnapshots() {
         snapshotJob?.cancel()
         snapshotJob = lifecycleScope.launch {
             while (isActive) {
                 delay(REWIND_SNAPSHOT_MS)
-                if (menuShowing || rewinding) continue
+                if (menuShowing || snapshotBusy) continue
                 val v = retroView ?: continue
+                snapshotBusy = true
                 try {
                     val s = v.serializeState()
                     if (s.isNotEmpty()) {
-                        rewindBuffer.addLast(s)
-                        rewindBytes += s.size
-                        while (rewindBuffer.size > REWIND_MAX_SNAPSHOTS ||
-                               rewindBytes > REWIND_MAX_BYTES) {
-                            rewindBytes -= rewindBuffer.removeFirst().size
+                        rewindSlots.addLast(s)
+                        while (rewindSlots.size > REWIND_MAX_SNAPSHOTS) {
+                            rewindSlots.removeFirst()
                         }
                     }
-                } catch (_: Exception) { }
+                } catch (_: Exception) {
+                } finally {
+                    snapshotBusy = false
+                }
             }
         }
     }
 
-    /** Пока R2 удерживается — отматываем по снимку назад. Отпустил — играем дальше. */
-    private fun setRewind(enabled: Boolean) {
-        if (rewinding == enabled) return
-        rewinding = enabled
-        rewindJob?.cancel()
-        if (!enabled) return
-        rewindJob = lifecycleScope.launch {
-            val v = retroView ?: return@launch
-            while (isActive && rewinding) {
-                val s = rewindBuffer.removeLastOrNull()
-                if (s == null) { rewinding = false; break } // дальше отматывать некуда
-                rewindBytes -= s.size
-                try { v.unserializeState(s) } catch (_: Exception) { }
-                delay(REWIND_STEP_MS)
-            }
+    /** Нажатие R2: мгновенный прыжок к снимку ~10-20 секунд назад. */
+    private fun rewindBack() {
+        if (!rewindOn) return
+        val v = retroView ?: return
+        val s = rewindSlots.removeFirstOrNull() // самый старый = дальше в прошлое
+        if (s == null) {
+            Toast.makeText(this, "Отматывать пока некуда", Toast.LENGTH_SHORT).show()
+            return
         }
+        rewindSlots.clear() // остальные снимки теперь «из будущего» — убираем
+        try {
+            v.unserializeState(s)
+            Toast.makeText(this, "⏪ отмотано назад", Toast.LENGTH_SHORT).show()
+        } catch (_: Exception) { }
     }
 
     // ------------------------------------------------------------------
@@ -204,8 +256,12 @@ class GameActivity : AppCompatActivity() {
         val down = event.action == KeyEvent.ACTION_DOWN
 
         when (event.keyCode) {
-            // R2 = перемотка назад, пока удерживается
-            KeyEvent.KEYCODE_BUTTON_R2 -> { setRewind(down); return true }
+            // R2 = прыжок назад на ~10-20 секунд
+            KeyEvent.KEYCODE_BUTTON_R2 -> {
+                if (down && !r2Held) rewindBack()
+                r2Held = down
+                return true
+            }
 
             // L2 = меню паузы
             KeyEvent.KEYCODE_BUTTON_L2 -> {
@@ -293,12 +349,17 @@ class GameActivity : AppCompatActivity() {
             event.getAxisValue(MotionEvent.AXIS_RZ)
         )
 
-        // R2 как ось (курок) = перемотка назад
+        // R2 как ось (курок) = прыжок назад, срабатывает по нажатию
         val rt = maxOf(
             event.getAxisValue(MotionEvent.AXIS_RTRIGGER),
             event.getAxisValue(MotionEvent.AXIS_GAS)
         )
-        setRewind(rt > 0.5f)
+        if (rt > 0.6f && !r2Held) {
+            r2Held = true
+            rewindBack()
+        } else if (rt < 0.4f) {
+            r2Held = false
+        }
 
         // L2 как ось = меню паузы (со «защёлкой», чтобы не открывалось повторно)
         val lt = maxOf(
@@ -321,7 +382,6 @@ class GameActivity : AppCompatActivity() {
     private fun showPauseMenu() {
         if (menuShowing) return
         menuShowing = true
-        setRewind(false)
         val view = retroView
         try { view?.onPause() } catch (_: Exception) { }
 
@@ -356,6 +416,7 @@ class GameActivity : AppCompatActivity() {
         dialog.setOnDismissListener {
             menuShowing = false
             l2Held = false
+            r2Held = false
             val filterChanged = shaderFor(currentFilter) != shaderFor(defaultFilter)
             if (filterChanged) {
                 applyFilterAndRestart()

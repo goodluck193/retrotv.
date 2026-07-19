@@ -21,6 +21,21 @@
     <string name="f_smooth">Сглаживание (апскейл)</string>
     <string name="f_crt">CRT (кинескоп)</string>
     <string name="f_lcd">LCD</string>
+    <string name="smooth_level">Уровень сглаживания (для фильтра «Сглаживание»)</string>
+    <string name="sl_smart">Умное (чётко, без «мыла»)</string>
+    <string name="sl_light">Лёгкое размытие</string>
+    <string name="sl_medium">Среднее размытие</string>
+    <string name="sl_strong">Сильное размытие</string>
+    <string name="audio_mode">Звук (если трещит — попробуй другой режим)</string>
+    <string name="a_std">Стандартный (надёжный)</string>
+    <string name="a_low">Низкая задержка</string>
+    <string name="render_res">Разрешение картинки (720p — легче всего для ТВ)</string>
+    <string name="r_720">720p (рекомендуется)</string>
+    <string name="r_1080">1080p</string>
+    <string name="r_native">Родное (4K на 4K-панели)</string>
+    <string name="rewind_opt">Отмотка назад на ~10 сек (кнопка R2)</string>
+    <string name="rew_on">Включена</string>
+    <string name="rew_off">Выключена</string>
     <string name="storage">Память</string>
     <string name="clear_states">Удалить все сохранения</string>
 </resources>
