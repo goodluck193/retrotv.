@@ -1,0 +1,36 @@
+name: Build RetroTV APK
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Получить исходники
+        uses: actions/checkout@v4
+
+      - name: Установить Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Скачать ядра эмуляции (libretro buildbot)
+        run: bash scripts/download_cores.sh
+
+      - name: Установить Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.7'
+
+      - name: Собрать APK
+        run: gradle assembleDebug --no-daemon
+
+      - name: Выложить готовый APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: RetroTV-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
