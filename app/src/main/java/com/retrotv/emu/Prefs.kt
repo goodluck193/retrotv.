@@ -16,10 +16,6 @@ object Prefs {
         get() = sp(this).getString("filter", FILTER_SHARP) ?: FILTER_SHARP
         set(v) = sp(this).edit().putString("filter", v).apply()
 
-    var Context.fastForwardSpeed: Int
-        get() = sp(this).getInt("ff_speed", 2)
-        set(v) = sp(this).edit().putInt("ff_speed", v.coerceIn(2, 4)).apply()
-
     fun filterTitle(id: String): String = when (id) {
         FILTER_SMOOTH -> "Сглаживание (апскейл)"
         FILTER_CRT -> "CRT (кинескоп)"

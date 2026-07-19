@@ -2,6 +2,7 @@ package com.retrotv.emu
 
 import android.app.AlertDialog
 import android.os.Bundle
+import android.view.Gravity
 import android.view.InputDevice
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -13,13 +14,16 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.retrotv.emu.Prefs.defaultFilter
-import com.retrotv.emu.Prefs.fastForwardSpeed
 import com.swordfish.libretrodroid.GLRetroView
 import com.swordfish.libretrodroid.GLRetroViewData
 import com.swordfish.libretrodroid.ShaderConfig
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.File
+import kotlin.math.abs
+import kotlin.math.sign
 
 class GameActivity : AppCompatActivity() {
 
@@ -27,8 +31,13 @@ class GameActivity : AppCompatActivity() {
         const val EXTRA_ROM_PATH = "rom_path"
         const val EXTRA_SYSTEM_ID = "system_id"
 
-        // Состояние, которое нужно восстановить после смены фильтра
-        // (recreate() пересоздаёт activity, а игра продолжается с того же места)
+        // Ограничения буфера перемотки назад (защита памяти ТВ)
+        private const val REWIND_SNAPSHOT_MS = 1000L      // снимок раз в секунду
+        private const val REWIND_MAX_SNAPSHOTS = 15       // ~15 секунд назад
+        private const val REWIND_MAX_BYTES = 48L * 1024 * 1024
+        private const val REWIND_STEP_MS = 120L           // скорость отмотки
+
+        // Состояние для восстановления после смены фильтра
         private var pendingResumeState: ByteArray? = null
     }
 
@@ -39,7 +48,14 @@ class GameActivity : AppCompatActivity() {
     private var menuShowing = false
     private var thumbLDown = false
     private var thumbRDown = false
-    private var fastForward = false
+    private var l2Held = false
+
+    // --- Перемотка назад ---
+    private val rewindBuffer = ArrayDeque<ByteArray>()
+    private var rewindBytes = 0L
+    private var rewinding = false
+    private var snapshotJob: Job? = null
+    private var rewindJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -66,7 +82,8 @@ class GameActivity : AppCompatActivity() {
             systemDirectory = File(filesDir, "system").apply { mkdirs() }.absolutePath
             savesDirectory = File(filesDir, "sram").apply { mkdirs() }.absolutePath
             shader = shaderFor(currentFilter)
-            preferLowLatencyAudio = true
+            // ВАЖНО: режим низкой задержки на многих ТВ даёт треск — отключён
+            preferLowLatencyAudio = false
             rumbleEventsEnabled = false
         }
 
@@ -74,9 +91,20 @@ class GameActivity : AppCompatActivity() {
         retroView = view
         lifecycle.addObserver(view)
 
+        // Центрируем окно игры: чёрные полосы будут симметрично по краям
         val root = FrameLayout(this)
-        root.addView(view)
+        root.setBackgroundColor(android.graphics.Color.BLACK)
+        root.addView(
+            view,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                Gravity.CENTER
+            )
+        )
         setContentView(root)
+
+        startSnapshots()
 
         // Восстановление после смены фильтра
         pendingResumeState?.let { state ->
@@ -92,11 +120,18 @@ class GameActivity : AppCompatActivity() {
         }
     }
 
+    override fun onDestroy() {
+        snapshotJob?.cancel()
+        rewindJob?.cancel()
+        rewindBuffer.clear()
+        super.onDestroy()
+    }
+
     private fun shaderFor(id: String): ShaderConfig = when (id) {
-        Prefs.FILTER_SMOOTH -> ShaderConfig.Default   // билинейное сглаживание
+        Prefs.FILTER_SMOOTH -> ShaderConfig.Default
         Prefs.FILTER_CRT -> ShaderConfig.CRT
         Prefs.FILTER_LCD -> ShaderConfig.LCD
-        else -> ShaderConfig.Sharp                    // чёткие пиксели
+        else -> ShaderConfig.Sharp
     }
 
     private fun hideSystemUi() {
@@ -105,6 +140,51 @@ class GameActivity : AppCompatActivity() {
             View.SYSTEM_UI_FLAG_FULLSCREEN or
             View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
             View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+    }
+
+    // ------------------------------------------------------------------
+    // ПЕРЕМОТКА НАЗАД (удержание R2)
+    // ------------------------------------------------------------------
+
+    /** Раз в секунду тихо запоминаем состояние игры (кольцевой буфер ~15 сек). */
+    private fun startSnapshots() {
+        snapshotJob?.cancel()
+        snapshotJob = lifecycleScope.launch {
+            while (isActive) {
+                delay(REWIND_SNAPSHOT_MS)
+                if (menuShowing || rewinding) continue
+                val v = retroView ?: continue
+                try {
+                    val s = v.serializeState()
+                    if (s.isNotEmpty()) {
+                        rewindBuffer.addLast(s)
+                        rewindBytes += s.size
+                        while (rewindBuffer.size > REWIND_MAX_SNAPSHOTS ||
+                               rewindBytes > REWIND_MAX_BYTES) {
+                            rewindBytes -= rewindBuffer.removeFirst().size
+                        }
+                    }
+                } catch (_: Exception) { }
+            }
+        }
+    }
+
+    /** Пока R2 удерживается — отматываем по снимку назад. Отпустил — играем дальше. */
+    private fun setRewind(enabled: Boolean) {
+        if (rewinding == enabled) return
+        rewinding = enabled
+        rewindJob?.cancel()
+        if (!enabled) return
+        rewindJob = lifecycleScope.launch {
+            val v = retroView ?: return@launch
+            while (isActive && rewinding) {
+                val s = rewindBuffer.removeLastOrNull()
+                if (s == null) { rewinding = false; break } // дальше отматывать некуда
+                rewindBytes -= s.size
+                try { v.unserializeState(s) } catch (_: Exception) { }
+                delay(REWIND_STEP_MS)
+            }
+        }
     }
 
     // ------------------------------------------------------------------
@@ -124,10 +204,16 @@ class GameActivity : AppCompatActivity() {
         val down = event.action == KeyEvent.ACTION_DOWN
 
         when (event.keyCode) {
-            // R2 как кнопка (некоторые прошивки шлют её кнопкой, а не осью)
-            KeyEvent.KEYCODE_BUTTON_R2 -> { setFastForward(down); return true }
+            // R2 = перемотка назад, пока удерживается
+            KeyEvent.KEYCODE_BUTTON_R2 -> { setRewind(down); return true }
 
-            // L3 + R3 одновременно = меню паузы
+            // L2 = меню паузы
+            KeyEvent.KEYCODE_BUTTON_L2 -> {
+                if (down) showPauseMenu()
+                return true
+            }
+
+            // L3 + R3 одновременно = меню паузы (запасной вариант)
             KeyEvent.KEYCODE_BUTTON_THUMBL -> {
                 thumbLDown = down
                 if (thumbLDown && thumbRDown) { showPauseMenu(); return true }
@@ -137,7 +223,7 @@ class GameActivity : AppCompatActivity() {
                 if (thumbLDown && thumbRDown) { showPauseMenu(); return true }
             }
 
-            // BACK (кнопка «назад» на пульте ТВ) = меню паузы
+            // BACK (пульт ТВ) = меню паузы
             KeyEvent.KEYCODE_BACK -> {
                 if (down) showPauseMenu()
                 return true
@@ -164,15 +250,12 @@ class GameActivity : AppCompatActivity() {
                 return true
             }
 
-            // Центральная кнопка пульта = кнопка A
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
                 view.sendKeyEvent(event.action, KeyEvent.KEYCODE_BUTTON_A)
                 return true
             }
         }
 
-        // Все остальные кнопки геймпада (крест/круг/квадрат/треугольник,
-        // L1/R1, L2, Start/Select) — напрямую в эмулятор
         if (isGamepad(event)) {
             view.sendKeyEvent(event.action, event.keyCode)
             return true
@@ -186,49 +269,61 @@ class GameActivity : AppCompatActivity() {
         val isJoystick = event.source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK
         if (!isJoystick) return super.dispatchGenericMotionEvent(event)
 
-        // Крестовина DualSense приходит как оси HAT
+        // Движение = крестовина ИЛИ левый стик (что отклонено — то и работает)
+        val hatX = event.getAxisValue(MotionEvent.AXIS_HAT_X)
+        val hatY = event.getAxisValue(MotionEvent.AXIS_HAT_Y)
+        val stickX = event.getAxisValue(MotionEvent.AXIS_X)
+        val stickY = event.getAxisValue(MotionEvent.AXIS_Y)
+
+        fun combine(hat: Float, stick: Float): Float = when {
+            abs(hat) > 0.3f -> hat
+            abs(stick) > 0.5f -> sign(stick)  // стик с мёртвой зоной
+            else -> 0f
+        }
         view.sendMotionEvent(
             GLRetroView.MOTION_SOURCE_DPAD,
-            event.getAxisValue(MotionEvent.AXIS_HAT_X),
-            event.getAxisValue(MotionEvent.AXIS_HAT_Y)
+            combine(hatX, stickX),
+            combine(hatY, stickY)
         )
-        // Левый стик — дублирует крестовину (удобно в платформерах)
-        view.sendMotionEvent(
-            GLRetroView.MOTION_SOURCE_ANALOG_LEFT,
-            event.getAxisValue(MotionEvent.AXIS_X),
-            event.getAxisValue(MotionEvent.AXIS_Y)
-        )
+        // Аналоговые оси тоже отправляем (для ядер, которые их понимают)
+        view.sendMotionEvent(GLRetroView.MOTION_SOURCE_ANALOG_LEFT, stickX, stickY)
         view.sendMotionEvent(
             GLRetroView.MOTION_SOURCE_ANALOG_RIGHT,
             event.getAxisValue(MotionEvent.AXIS_Z),
             event.getAxisValue(MotionEvent.AXIS_RZ)
         )
 
-        // R2 как ось (курок) = перемотка, пока удерживается
+        // R2 как ось (курок) = перемотка назад
         val rt = maxOf(
             event.getAxisValue(MotionEvent.AXIS_RTRIGGER),
             event.getAxisValue(MotionEvent.AXIS_GAS)
         )
-        setFastForward(rt > 0.5f)
+        setRewind(rt > 0.5f)
+
+        // L2 как ось = меню паузы (со «защёлкой», чтобы не открывалось повторно)
+        val lt = maxOf(
+            event.getAxisValue(MotionEvent.AXIS_LTRIGGER),
+            event.getAxisValue(MotionEvent.AXIS_BRAKE)
+        )
+        if (lt > 0.6f && !l2Held) {
+            l2Held = true
+            showPauseMenu()
+        } else if (lt < 0.4f) {
+            l2Held = false
+        }
         return true
     }
 
-    private fun setFastForward(enabled: Boolean) {
-        if (fastForward == enabled) return
-        fastForward = enabled
-        retroView?.frameSpeed = if (enabled) fastForwardSpeed else 1
-    }
-
     // ------------------------------------------------------------------
-    // МЕНЮ ПАУЗЫ
+    // МЕНЮ ПАУЗЫ (L2, или L3+R3, или «назад» на пульте)
     // ------------------------------------------------------------------
 
     private fun showPauseMenu() {
         if (menuShowing) return
         menuShowing = true
-        setFastForward(false)
+        setRewind(false)
         val view = retroView
-        try { view?.onPause() } catch (_: Exception) { } // остановить эмуляцию и звук
+        try { view?.onPause() } catch (_: Exception) { }
 
         val content = layoutInflater.inflate(R.layout.dialog_pause, null)
         val dialog = AlertDialog.Builder(this, R.style.PauseDialog)
@@ -242,34 +337,27 @@ class GameActivity : AppCompatActivity() {
         content.findViewById<Button>(R.id.btnResume).setOnClickListener { dialog.dismiss() }
 
         content.findViewById<Button>(R.id.btnSave).setOnClickListener {
-            saveState()
-            dialog.dismiss()
+            saveState(); dialog.dismiss()
         }
-
         content.findViewById<Button>(R.id.btnLoad).setOnClickListener {
-            loadState()
-            dialog.dismiss()
+            loadState(); dialog.dismiss()
         }
-
         btnFilter.setOnClickListener {
             currentFilter = Prefs.nextFilter(currentFilter)
             btnFilter.text = getString(R.string.filter_fmt, Prefs.filterTitle(currentFilter))
         }
-
         content.findViewById<Button>(R.id.btnExit).setOnClickListener {
             dialog.setOnDismissListener(null)
             dialog.dismiss()
             menuShowing = false
-            finish() // возврат на главный экран
+            finish()
         }
 
         dialog.setOnDismissListener {
             menuShowing = false
-            val filterChanged = currentFilter != defaultFilter &&
-                shaderFor(currentFilter) != shaderFor(defaultFilter)
+            l2Held = false
+            val filterChanged = shaderFor(currentFilter) != shaderFor(defaultFilter)
             if (filterChanged) {
-                // Смена шейдера требует пересоздания вида: сохраняем состояние
-                // игры в память и пересоздаём экран — игра продолжится с места паузы.
                 applyFilterAndRestart()
             } else {
                 try { view?.onResume() } catch (_: Exception) { }
@@ -286,8 +374,7 @@ class GameActivity : AppCompatActivity() {
         } catch (_: Exception) {
             pendingResumeState = null
         }
-        val chosen = currentFilter
-        this.defaultFilter = chosen // запомнить как текущий фильтр
+        this.defaultFilter = currentFilter
         recreate()
     }
 

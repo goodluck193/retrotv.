@@ -8,7 +8,6 @@ import android.widget.RadioGroup
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.retrotv.emu.Prefs.defaultFilter
-import com.retrotv.emu.Prefs.fastForwardSpeed
 
 class SettingsActivity : AppCompatActivity() {
 
@@ -31,20 +30,6 @@ class SettingsActivity : AppCompatActivity() {
             defaultFilter = filterIds.first { it.second == checkedId }.first
         }
 
-        // --- Скорость перемотки ---
-        val ffGroup = findViewById<RadioGroup>(R.id.ffGroup)
-        when (fastForwardSpeed) {
-            3 -> findViewById<RadioButton>(R.id.ff3).isChecked = true
-            4 -> findViewById<RadioButton>(R.id.ff4).isChecked = true
-            else -> findViewById<RadioButton>(R.id.ff2).isChecked = true
-        }
-        ffGroup.setOnCheckedChangeListener { _, checkedId ->
-            fastForwardSpeed = when (checkedId) {
-                R.id.ff3 -> 3
-                R.id.ff4 -> 4
-                else -> 2
-            }
-        }
 
         // --- Занятое место ---
         updateStorageInfo()

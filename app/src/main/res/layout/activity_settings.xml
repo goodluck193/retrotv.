@@ -23,15 +23,6 @@
         </RadioGroup>
 
         <TextView style="@style/SettingsHeader" android:layout_marginTop="24dp"
-            android:text="@string/ff_speed" />
-        <RadioGroup android:id="@+id/ffGroup"
-            android:layout_width="wrap_content" android:layout_height="wrap_content">
-            <RadioButton android:id="@+id/ff2" style="@style/SettingsRadio" android:text="2x" />
-            <RadioButton android:id="@+id/ff3" style="@style/SettingsRadio" android:text="3x" />
-            <RadioButton android:id="@+id/ff4" style="@style/SettingsRadio" android:text="4x" />
-        </RadioGroup>
-
-        <TextView style="@style/SettingsHeader" android:layout_marginTop="24dp"
             android:text="@string/storage" />
         <TextView android:id="@+id/storageInfo"
             android:layout_width="wrap_content" android:layout_height="wrap_content"

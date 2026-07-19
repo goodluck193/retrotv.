@@ -21,7 +21,6 @@
     <string name="f_smooth">Сглаживание (апскейл)</string>
     <string name="f_crt">CRT (кинескоп)</string>
     <string name="f_lcd">LCD</string>
-    <string name="ff_speed">Скорость перемотки (удержание R2)</string>
     <string name="storage">Память</string>
     <string name="clear_states">Удалить все сохранения</string>
 </resources>
