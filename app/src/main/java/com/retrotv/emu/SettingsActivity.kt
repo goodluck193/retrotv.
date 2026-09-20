@@ -88,6 +88,7 @@ class SettingsActivity : AppCompatActivity() {
             button.isEnabled = false
             lifecycleScope.launch {
                 try { CoverArt.clearDisk(applicationContext); updateStorageInfo() }
+                catch (e: Exception) { if (e is CancellationException) throw e; showStorageError(e) }
                 finally { button.isEnabled = true }
             }
         }
@@ -99,17 +100,23 @@ class SettingsActivity : AppCompatActivity() {
                 .setMessage("Удалятся слоты, автосохранения и их резервные копии. Игры и внутриигровая SRAM останутся.")
                 .setPositiveButton("Удалить") { _, _ ->
                     lifecycleScope.launch {
-                        withContext(Dispatchers.IO) {
+                        try { withContext(Dispatchers.IO) {
                             SaveWriter.flush()
                             RomLibrary.statesDir(this@SettingsActivity).listFiles()?.forEach { it.delete() }
                             File(filesDir, "saves").walkTopDown().filter { it.isFile && (it.name.contains(".state") || it.extension == "jpg") }.forEach { it.delete() }
                         }
                         updateStorageInfo()
+                        } catch (e: Exception) { if (e is CancellationException) throw e; showStorageError(e) }
                     }
                 }
                 .setNegativeButton("Отмена", null)
                 .show()
         }
+    }
+
+    private fun showStorageError(e: Exception) {
+        AlertDialog.Builder(this).setTitle("Операция не завершена").setMessage(e.message)
+            .setPositiveButton("Закрыть", null).show()
     }
 
     private fun updateStorageInfo() {

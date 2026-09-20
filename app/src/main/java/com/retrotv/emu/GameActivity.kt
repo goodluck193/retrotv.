@@ -137,9 +137,12 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
                 if (height > 0) view.addOnLayoutChangeListener { _, l, t, r, b, _, _, _, _ ->
                     if (b - t > height && r > l) view.holder.setFixedSize((r - l) * height / (b - t), height)
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
+                if (e !is Exception && e !is OutOfMemoryError) throw e
+                if (e is OutOfMemoryError) limitMemory()
                 if (e is CancellationException) throw e
-                AlertDialog.Builder(this@GameActivity).setTitle("Не удалось открыть игру").setMessage(e.message)
+                AlertDialog.Builder(this@GameActivity).setTitle("Не удалось открыть игру")
+                    .setMessage(if (e is OutOfMemoryError) "На телевизоре недостаточно свободной памяти. Закройте другие приложения и повторите." else e.message)
                     .setCancelable(false).setPositiveButton("В библиотеку") { _, _ -> finish() }.show()
             }
         }
