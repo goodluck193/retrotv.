@@ -25,5 +25,6 @@ elif subprocess.run(['git', 'apply', '--reverse', '--check', str(patch)], cwd=EN
 for name in ('audio.h', 'audio.cpp', 'tv_audio_buffer.h', 'fpssync.h', 'fpssync.cpp', 'frame_clock.h'):
     shutil.copyfile(ROOT / 'native' / name, ENGINE / 'libretrodroid/src/main/cpp' / name)
 shutil.copyfile(ROOT / 'engine/build.gradle.kts', ENGINE / 'libretrodroid/build.gradle.kts')
+shutil.copyfile(ROOT / 'engine/AndroidManifest.xml', ENGINE / 'libretrodroid/src/main/AndroidManifest.xml')
 (ENGINE / 'libretrodroid/build.gradle').unlink(missing_ok=True)
 print('Pinned engine prepared:', REVISION)

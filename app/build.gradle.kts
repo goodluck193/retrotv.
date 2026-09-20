@@ -9,6 +9,7 @@ android {
 
     defaultConfig {
         applicationId = "com.retrotv.emu"
+        manifestPlaceholders["appLabel"] = "@string/app_name"
         minSdk = 26          // Android 8.0+ (типичные TCL Android TV)
         targetSdk = 34
         versionCode = 6
@@ -20,6 +21,13 @@ android {
     }
 
     buildTypes {
+        create("preview") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".preview"
+            versionNameSuffix = "-preview"
+            manifestPlaceholders["appLabel"] = "RetroTV Preview"
+            matchingFallbacks += listOf("debug")
+        }
         release {
             isMinifyEnabled = false
         }

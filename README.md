@@ -76,8 +76,11 @@ python3 scripts/build_cores.py
 ```
 
 Подготовку движка и ядер выполните до открытия в Android Studio.
-APK: `app/build/outputs/apk/debug/app-debug.apk`. GitHub Actions публикует
-`RetroTV-1.5-debug` на 90 дней. SHA ядер — в `engine/cores.lock.json`, исходный
+Обычный APK: `app/build/outputs/apk/debug/app-debug.apk`.
+Для проверки рядом с установленной версией: `./gradlew :app:assemblePreview`.
+Файл `app/build/outputs/apk/preview/app-preview.apk` устанавливается как отдельная
+**RetroTV Preview** (`com.retrotv.emu.preview`), с собственной библиотекой —
+нужно заново добавить ROM. GitHub Actions публикует обе сборки на 90 дней. SHA ядер — в `engine/cores.lock.json`, исходный
 движок — в `scripts/prepare_engine.py`, патч — в `engine/libretrodroid.patch`,
 новые звук и часы — в `native/`.
 

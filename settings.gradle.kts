@@ -10,7 +10,6 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven("https://jitpack.io") // для LibretroDroid
     }
 }
 rootProject.name = "RetroTV"
