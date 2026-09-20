@@ -108,3 +108,6 @@ g++ -std=c++17 -O2 -pthread -fsanitize=address,undefined -fno-omit-frame-pointer
 ## Компоненты
 
 [Лицензии и исходники](THIRD_PARTY.md). ROM-файлы в APK не входят.
+
+
+Проверка памяти и завершения приложения (1.5.1): [пределы, исправления и ограничения](docs/memory-and-exit.md).

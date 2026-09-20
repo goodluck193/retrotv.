@@ -8,8 +8,9 @@ class RewindHistory<T>(private val budget: Int, private val maxEntries: Int, pri
     val size get() = entries.size
     operator fun get(index: Int) = entries[index]
     fun add(state: ByteArray, timeMs: Long, preview: T?, previewBytes: Int = 0) {
-        val cost = state.size + previewBytes
-        if (cost > budget) { preview?.let(release); return }
+        val total = state.size.toLong() + previewBytes.coerceAtLeast(0)
+        if (total > budget || maxEntries <= 0) { preview?.let(release); return }
+        val cost = total.toInt()
         while (entries.isNotEmpty() && (bytes + cost > budget || entries.size >= maxEntries)) removeFirst()
         entries.addLast(Entry(state, timeMs, preview, cost)); bytes += cost
     }

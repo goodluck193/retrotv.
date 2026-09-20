@@ -19,6 +19,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var metadata: LibraryMetadata
     private lateinit var adapter: RomAdapter
     private var roms = emptyList<Rom>()
+    private var launchingGame = false
     private var category = 0
     private var search = ""
     private var focusedPath: String? = null
@@ -34,6 +35,9 @@ class MainActivity : AppCompatActivity() {
         recycler.layoutManager = GridLayoutManager(this, 4); recycler.adapter = adapter
         findViewById<Button>(R.id.btnSettings).setOnClickListener { startActivity(Intent(this, SettingsActivity::class.java)) }
         findViewById<Button>(R.id.btnAddRom).setOnClickListener { pickRom.launch(arrayOf("*/*")) }
+        findViewById<Button>(R.id.btnExitApp).setOnClickListener {
+            lifecycleScope.launch { withTimeoutOrNull(3000) { SaveWriter.flush() }; AppExit.finish(this@MainActivity) }
+        }
         findViewById<Button>(R.id.btnCategory).apply {
             text = categories[category]
             setOnClickListener { AlertDialog.Builder(this@MainActivity).setTitle("Библиотека").setSingleChoiceItems(categories, category) { dialog, which ->
@@ -43,7 +47,21 @@ class MainActivity : AppCompatActivity() {
         findViewById<EditText>(R.id.searchGames).doAfterTextChanged { search = it.toString(); filter() }
     }
     override fun onSaveInstanceState(outState: Bundle) { outState.putInt("category", category); outState.putString("focus", focusedPath); super.onSaveInstanceState(outState) }
-    override fun onResume() { super.onResume(); refresh() }
+    override fun onResume() { super.onResume(); launchingGame = false; recycler.adapter = adapter; refresh() }
+    override fun onStop() {
+        refreshJob?.cancel(); previewJob?.cancel()
+        findViewById<ImageView>(R.id.continuePreview).setImageDrawable(null)
+        adapter.releaseCovers(); recycler.adapter = null; recycler.recycledViewPool.clear()
+        CoverArt.clearMemory()
+        super.onStop()
+    }
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) {
+            previewJob?.cancel(); adapter.releaseCovers()
+            findViewById<ImageView>(R.id.continuePreview).setImageDrawable(null)
+        }
+    }
     private fun refresh() {
         refreshJob?.cancel()
         refreshJob = lifecycleScope.launch {
@@ -81,7 +99,7 @@ class MainActivity : AppCompatActivity() {
             card.setOnClickListener { launchGame(last) }
             val image = findViewById<ImageView>(R.id.continuePreview); image.setImageDrawable(null)
             previewJob = lifecycleScope.launch {
-                val bitmap = withContext(Dispatchers.IO) { android.graphics.BitmapFactory.decodeFile(SaveStore(this@MainActivity, last).preview(0).path) }
+                val bitmap = withContext(Dispatchers.IO) { CoverArt.decode(SaveStore(this@MainActivity, last).preview(0)) }
                 image.setImageBitmap(bitmap ?: CoverArt.load(applicationContext, last))
             }
         }
@@ -98,6 +116,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
     private fun launchGame(rom: Rom, resume: Boolean = true) {
+        if (launchingGame) return
+        launchingGame = true
         focusedPath = rom.file.path
         startActivity(Intent(this, GameActivity::class.java).apply {
             putExtra(GameActivity.EXTRA_ROM_PATH, rom.file.path); putExtra(GameActivity.EXTRA_SYSTEM_ID, rom.system.id); putExtra(GameActivity.EXTRA_RESUME, resume)
@@ -129,6 +149,8 @@ class MainActivity : AppCompatActivity() {
 private class RomAdapter(private val metadata: LibraryMetadata, private val scope: CoroutineScope,
     private val onClick: (Rom) -> Unit, private val onLongClick: (Rom) -> Unit, private val onFocus: (Rom) -> Unit
 ) : RecyclerView.Adapter<RomAdapter.VH>() {
+    private val holders = mutableSetOf<VH>()
+    fun releaseCovers() { holders.forEach { it.job?.cancel(); it.cover.setImageDrawable(null); it.placeholder.visibility = View.VISIBLE } }
     private var items = emptyList<Rom>()
     fun submit(list: List<Rom>) { items = list; notifyDataSetChanged() }
     fun positionOf(path: String) = items.indexOfFirst { it.file.path == path }
@@ -140,6 +162,7 @@ private class RomAdapter(private val metadata: LibraryMetadata, private val scop
     override fun onCreateViewHolder(parent: ViewGroup, type: Int) = VH(LayoutInflater.from(parent.context).inflate(R.layout.item_game, parent, false))
     override fun getItemCount() = items.size
     override fun onBindViewHolder(holder: VH, position: Int) {
+        holders.add(holder)
         val rom = items[position]; holder.title.text = (if (metadata.favorite(rom)) "★ " else "") + rom.title; holder.system.text = rom.system.title
         holder.cover.setImageDrawable(null); holder.placeholder.text = when (rom.system) { SystemType.NES -> "NES"; SystemType.SNES -> "SNES"; SystemType.MEGADRIVE -> "SEGA" }; holder.placeholder.visibility = View.VISIBLE
         holder.job?.cancel(); holder.job = scope.launch {
@@ -151,5 +174,5 @@ private class RomAdapter(private val metadata: LibraryMetadata, private val scop
         }
         holder.itemView.scaleX = if (holder.itemView.hasFocus()) 1.04f else 1f; holder.itemView.scaleY = holder.itemView.scaleX
     }
-    override fun onViewRecycled(holder: VH) { holder.job?.cancel(); holder.cover.setImageDrawable(null) }
+    override fun onViewRecycled(holder: VH) { holder.job?.cancel(); holder.cover.setImageDrawable(null); holders.remove(holder) }
 }

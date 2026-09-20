@@ -84,6 +84,13 @@ class SettingsActivity : AppCompatActivity() {
         }
         // --- Занятое место ---
         updateStorageInfo()
+        findViewById<Button>(R.id.btnClearCovers).setOnClickListener { button ->
+            button.isEnabled = false
+            lifecycleScope.launch {
+                try { CoverArt.clearDisk(applicationContext); updateStorageInfo() }
+                finally { button.isEnabled = true }
+            }
+        }
 
         // --- Очистка сохранений ---
         findViewById<Button>(R.id.btnClearStates).setOnClickListener {
@@ -110,7 +117,7 @@ class SettingsActivity : AppCompatActivity() {
             val info = withContext(Dispatchers.IO) {
                 fun bytes(name: String) = File(filesDir, name).walkTopDown().filter { it.isFile }.sumOf { it.length() }
                 "Игры: ${bytes("roms") / 1024} КБ • Сохранения: ${(bytes("saves") + bytes("states")) / 1024} КБ\n" +
-                    "Обложки: ${bytes("covers") / 1024} КБ • Свободно: ${filesDir.usableSpace / 1024 / 1024} МБ\nВерсия: 1.5"
+                    "Обложки: ${bytes("covers") / 1024} КБ (кэш до 64 МБ) • Свободно: ${filesDir.usableSpace / 1024 / 1024} МБ\nВерсия: 1.5.1"
             }
             findViewById<TextView>(R.id.storageInfo).text = info
         }

@@ -31,6 +31,10 @@ jobs:
           /tmp/audio-test
       - name: Prepare engine
         run: python3 scripts/prepare_engine.py
+      - name: Native resource tests
+        run: |
+          g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer native/resource_test.cpp .engine/libretrodroid/src/main/cpp/utils/utils.cpp -I.engine/libretrodroid/src/main/cpp -o /tmp/resource-test
+          /tmp/resource-test
       - uses: actions/cache/restore@v4
         id: cores-cache
         with:
@@ -56,12 +60,12 @@ jobs:
         run: ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:assemblePreview --no-daemon --max-workers=2
       - uses: actions/upload-artifact@v4
         with:
-          name: RetroTV-1.5-debug
+          name: RetroTV-1.5.1-debug
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 90
       - uses: actions/upload-artifact@v4
         with:
-          name: RetroTV-1.5-preview
+          name: RetroTV-1.5.1-preview
           path: app/build/outputs/apk/preview/app-preview.apk
           retention-days: 90
       - uses: actions/upload-artifact@v4

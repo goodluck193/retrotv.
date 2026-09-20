@@ -12,8 +12,8 @@ android {
         manifestPlaceholders["appLabel"] = "@string/app_name"
         minSdk = 26          // Android 8.0+ (типичные TCL Android TV)
         targetSdk = 34
-        versionCode = 6
-        versionName = "1.5"
+        versionCode = 7
+        versionName = "1.5.1"
         ndk {
             // TCL бывают и 32-битные, и 64-битные — собираем оба ABI
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
@@ -23,9 +23,9 @@ android {
     buildTypes {
         create("preview") {
             initWith(getByName("debug"))
-            applicationIdSuffix = ".preview"
+            applicationIdSuffix = ".preview.memory"
             versionNameSuffix = "-preview"
-            manifestPlaceholders["appLabel"] = "RetroTV Preview"
+            manifestPlaceholders["appLabel"] = "RetroTV Preview 1.5.1"
             matchingFallbacks += listOf("debug")
         }
         release {

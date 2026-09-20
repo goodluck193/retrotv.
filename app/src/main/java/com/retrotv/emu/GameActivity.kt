@@ -1,8 +1,9 @@
 package com.retrotv.emu
 
 import android.app.AlertDialog
+import android.app.ActivityManager
+import android.content.ComponentCallbacks2
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.hardware.input.InputManager
 import android.os.*
@@ -44,7 +45,12 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
     private var checkpointJob: Job? = null
     private var captureBusy = false
     private var generation = 0
-    private val history = RewindHistory<Bitmap>(24 * 1024 * 1024, 120) { it.recycle() }
+    private val memoryManager by lazy { getSystemService(ACTIVITY_SERVICE) as ActivityManager }
+    private val rewindBudget by lazy { ResourceBudget.rewind(Runtime.getRuntime().maxMemory(), memoryManager.isLowRamDevice) }
+    private val history by lazy { RewindHistory<Bitmap>(rewindBudget, 120) { it.recycle() } }
+    private var memoryLimited = false
+    private var memoryJob: Job? = null
+    private var exiting = false
     private var rewindOverlay: LinearLayout? = null
     private var rewindImage: ImageView? = null
     private var rewindLabel: TextView? = null
@@ -70,7 +76,6 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
         root = FrameLayout(this).apply { setBackgroundColor(Color.BLACK) }
@@ -84,6 +89,7 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         lifecycleScope.launch {
             try {
                 val ramResult = withContext(Dispatchers.IO) {
+                    require(file.length() in 1..system.maxRomBytes) { "Недопустимый размер ROM" }
                     rom = Rom(file, system).also { it.id }
                     saves = SaveStore(applicationContext, rom)
                     SaveWriter.flush(); saves.migrateLegacy()
@@ -107,6 +113,7 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
                 lifecycleScope.launch {
                     view.getGLRetroErrors().collect { code ->
                         if (!isFinishing) {
+                            runCatching { pausePlayer() }
                             ready = false; protectingSave = true
                             AlertDialog.Builder(this@GameActivity).setTitle("Ошибка запуска игры")
                                 .setMessage("Код: $code. Попробуйте другой файл этой игры.").setCancelable(false)
@@ -118,6 +125,7 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
                     view.getGLRetroEvents().collect { event ->
                         if (event == GLRetroView.GLRetroEvents.SurfaceCreated && !ready) {
                             ready = true; stopped = false; lastClock = SystemClock.elapsedRealtime()
+                            setScreenAwake(lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED))
                             metadata.played(rom)
                             if (shouldResume) restore(0, true) else { startCheckpoints(); showHint() }
                         }
@@ -145,23 +153,58 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
     }
     override fun onPostResume() {
         super.onPostResume()
+        memoryJob?.cancel()
+        memoryJob = lifecycleScope.launch {
+            val info = ActivityManager.MemoryInfo()
+            while (isActive) {
+                memoryManager.getMemoryInfo(info)
+                val runtime = Runtime.getRuntime()
+                val spare = runtime.maxMemory() - runtime.totalMemory() + runtime.freeMemory()
+                if (info.lowMemory || info.availMem < maxOf(info.threshold, 64L * ResourceBudget.MIB) ||
+                    spare < maxOf(16L * ResourceBudget.MIB, runtime.maxMemory() / 8)) limitMemory()
+                delay(2000)
+            }
+        }
         if (ready) {
             stopped = false; lastClock = SystemClock.elapsedRealtime()
-            if (menuShowing || protectingSave || rewinding) pausePlayer() else startCheckpoints()
+            if (menuShowing || protectingSave || rewinding || exiting) pausePlayer() else { setScreenAwake(true); startCheckpoints() }
         }
     }
     override fun onPause() {
-        checkpointJob?.cancel()
+        checkpointJob?.cancel(); memoryJob?.cancel(); setScreenAwake(false)
         if (rewinding) finishRewind(false, resume = false)
-        if (ready) { pausePlayer(); if (!protectingSave) saveAutomatically() }
+        if (ready) pausePlayer()
         super.onPause()
+    }
+    override fun onStop() {
+        clearHistory(); CoverArt.clearMemory()
+        if (ready && !protectingSave && !exiting) saveAutomatically()
+        super.onStop()
+    }
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level >= ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) { if (rewinding) finishRewind(false, false); clearHistory() }
+        else if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) limitMemory()
+    }
+    override fun onLowMemory() { super.onLowMemory(); limitMemory() }
+    private fun limitMemory() {
+        if (rewinding) finishRewind(false)
+        clearHistory(); CoverArt.clearMemory()
+        if (!memoryLimited) { memoryLimited = true; toast("Мало памяти: история перемотки очищена и отключена до следующего запуска игры.") }
+    }
+    private fun setScreenAwake(awake: Boolean) {
+        if (awake) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        retroView?.keepScreenOn = awake
     }
     override fun onDestroy() {
         ready = false; generation++
-        checkpointJob?.cancel(); rewindJob?.cancel()
+        checkpointJob?.cancel(); rewindJob?.cancel(); memoryJob?.cancel(); restoreJob?.cancel()
         rewindImage?.setImageDrawable(null); history.clear()
+        rewindOrigin = null; rewindOverlay = null; rewindImage = null; rewindLabel = null
         inputManager.unregisterInputDeviceListener(this)
         super.onDestroy()
+        retroView = null
     }
     private fun shaderFor(id: String): ShaderConfig = when (id) {
         Prefs.FILTER_SMOOTH -> when (smoothLevel) {
@@ -180,6 +223,7 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         lastClock = now
     }
     private fun pausePlayer() {
+        setScreenAwake(false)
         if (!ready || stopped) return
         tickClock(); audioInfo = LibretroDroid.audioDiagnostics()
         retroView?.onPause(); LibretroDroid.pause(); stopped = true
@@ -189,6 +233,7 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         if (!ready || !stopped || !lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) return
         LibretroDroid.resume(); retroView?.onResume()
         stopped = false; lastClock = SystemClock.elapsedRealtime(); startCheckpoints()
+        setScreenAwake(true)
     }
     private fun startCheckpoints() {
         checkpointJob?.cancel()
@@ -197,8 +242,8 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
                 delay(100)
                 if (!ready || stopped || menuShowing || protectingSave || rewinding || captureBusy) continue
                 tickClock()
-                val auto = playTime - lastAuto >= 30_000
-                val snapshot = rewindEnabled && playTime - lastSnapshot >= rewindStep
+                val auto = playTime - lastAuto >= 30_000 && SaveWriter.isIdle()
+                val snapshot = rewindEnabled && !memoryLimited && playTime - lastSnapshot >= rewindStep
                 if (!auto && !snapshot) continue
                 try {
                     val start = SystemClock.elapsedRealtime()
@@ -212,26 +257,29 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
                         captureBusy = true
                         captureBitmap(320) { bitmap ->
                             captureBusy = false
-                            if (ready && version == generation && !rewinding) history.add(state, time, bitmap, bitmap?.byteCount ?: 0)
+                            if (ready && !stopped && !memoryLimited && version == generation && !rewinding) history.add(state, time, bitmap, bitmap?.byteCount ?: 0)
                             else bitmap?.recycle()
                         }
                     }
-                } catch (e: Exception) { android.util.Log.w("RetroTV", "Checkpoint", e) }
+                } catch (_: OutOfMemoryError) { limitMemory() }
+                catch (e: Exception) { android.util.Log.w("RetroTV", "Checkpoint", e) }
             }
         }
     }
-    private fun writeAutomatic(state: ByteArray) {
+    private fun writeAutomatic(state: ByteArray): Deferred<Boolean> {
         val ram = retroView!!.serializeSRAM(false); val target = saves
-        SaveWriter.submit(applicationContext) { target.write(0, state); target.writeRam(ram) }
+        return SaveWriter.submit(applicationContext, state.size.toLong() + ram.size) { target.write(0, state); target.writeRam(ram) }
     }
-    private fun saveAutomatically() {
-        try { writeAutomatic(retroView!!.serializeState(false)) }
-        catch (e: Exception) { toast("Автосохранение не удалось: ${e.message}") }
+    private fun saveAutomatically(): Deferred<Boolean>? {
+        return try { writeAutomatic(retroView!!.serializeState(false)) }
+        catch (_: OutOfMemoryError) { limitMemory(); toast("Недостаточно памяти для нового сохранения. Предыдущее сохранено."); null }
+        catch (e: Exception) { toast("Автосохранение не удалось: ${e.message}"); null }
     }
     private fun captureBitmap(width: Int, done: (Bitmap?) -> Unit) {
         val view = retroView
-        if (view == null || !view.holder.surface.isValid || view.width <= 0 || view.height <= 0) { done(null); return }
-        val bitmap = Bitmap.createBitmap(width, (width.toLong() * view.height / view.width).toInt().coerceIn(1, width), Bitmap.Config.RGB_565)
+        if (memoryLimited || view == null || !view.holder.surface.isValid || view.width <= 0 || view.height <= 0) { done(null); return }
+        val bitmap = try { Bitmap.createBitmap(width, (width.toLong() * view.height / view.width).toInt().coerceIn(1, width), Bitmap.Config.RGB_565) }
+        catch (_: OutOfMemoryError) { limitMemory(); done(null); return }
         try {
             PixelCopy.request(view, bitmap, { result ->
                 if (result == PixelCopy.SUCCESS) done(bitmap) else { bitmap.recycle(); done(null) }
@@ -240,11 +288,11 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
     }
     private fun capturePreview(slot: Int) {
         val target = saves
-        captureBitmap(480) { bitmap -> if (bitmap != null) SaveWriter.submit(applicationContext) {
+        captureBitmap(480) { bitmap -> if (bitmap != null) SaveWriter.submit(applicationContext, bitmap.byteCount.toLong(), { bitmap.recycle() }) {
             try { target.writePreview(slot, bitmap) } finally { bitmap.recycle() }
         } }
     }
-    private fun clearHistory() { generation++; history.clear(); lastSnapshot = playTime; lastAuto = playTime }
+    private fun clearHistory() { generation++; history.clear(); lastSnapshot = playTime }
     private fun chooseSlot(saving: Boolean) {
         if (protectingSave) return
         val slots = if (saving) (1..3).toList() else (0..3).toList()
@@ -258,7 +306,7 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
                 val image = ImageView(context).apply { scaleType = ImageView.ScaleType.FIT_CENTER }
                 row.addView(image, LinearLayout.LayoutParams(128, 80))
                 row.addView(TextView(context).apply { text = labels[position]; textSize = 17f; setPadding(16, 0, 0, 0) })
-                lifecycleScope.launch { image.setImageBitmap(withContext(Dispatchers.IO) { BitmapFactory.decodeFile(saves.preview(slots[position]).path) }) }
+                lifecycleScope.launch { image.setImageBitmap(withContext(Dispatchers.IO) { CoverArt.decode(saves.preview(slots[position])) }) }
                 return row
             }
         }
@@ -274,10 +322,11 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         if (protectingSave) return
         try {
             val state = retroView!!.serializeState(false); val ram = retroView!!.serializeSRAM(false); val target = saves
-            val job = SaveWriter.submit(applicationContext) { target.write(slot, state); target.writeRam(ram) }
+            val job = SaveWriter.submit(applicationContext, state.size.toLong() + ram.size) { target.write(slot, state); target.writeRam(ram) }
             capturePreview(slot)
             lifecycleScope.launch { if (job.await()) toast("Сохранено в слот $slot") }
-        } catch (e: Exception) { toast("Не удалось сохранить: ${e.message}") }
+        } catch (_: OutOfMemoryError) { limitMemory(); toast("Не удалось сохранить: недостаточно памяти") }
+        catch (e: Exception) { toast("Не удалось сохранить: ${e.message}") }
     }
     private fun restore(slot: Int, initial: Boolean = false) {
         if (restoreJob?.isActive == true) return
@@ -288,10 +337,12 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
                 rollback = retroView!!.serializeState(false)
                 val state = withContext(Dispatchers.IO) { SaveWriter.flush(); saves.read(slot) }
                 check(retroView!!.unserializeState(state.bytes, false)) { "Ядро отклонило сохранение" }
-                clearHistory(); protectingSave = false
+                clearHistory(); lastAuto = playTime; protectingSave = false
                 if (state.fromBackup) toast("Восстановлена резервная копия")
                 if (!menuShowing) { resumePlayer(); if (initial) showHint() }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
+                if (e !is Exception && e !is OutOfMemoryError) throw e
+                if (e is OutOfMemoryError) limitMemory()
                 if (e is CancellationException) throw e
                 val restored = rollback?.let { runCatching { retroView!!.unserializeState(it, false) }.getOrDefault(false) } ?: false
                 AlertDialog.Builder(this@GameActivity).setTitle("Не удалось восстановить игру")
@@ -305,10 +356,11 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
     }
 
     private fun beginRewind() {
-        if (!rewindEnabled || protectingSave || menuShowing || rewinding) return
+        if (!rewindEnabled || memoryLimited || protectingSave || menuShowing || rewinding || exiting) return
         if (history.size == 0) { toast("История ещё накапливается"); return }
         pausePlayer()
         try { rewindOrigin = retroView!!.serializeState(false) }
+        catch (_: OutOfMemoryError) { limitMemory(); resumePlayer(); return }
         catch (_: Exception) { toast("Не удалось начать перемотку"); resumePlayer(); return }
         rewinding = true; generation++
         rewindIndex = history.size - 1
@@ -373,7 +425,7 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         lifecycleScope.launch { delay(5000); root.removeView(hint) }
     }
     private fun showPauseMenu() {
-        if (menuShowing || !ready || protectingSave) return
+        if (menuShowing || !ready || protectingSave || exiting) return
         if (rewinding) finishRewind(false, false)
         menuShowing = true; pausePlayer(); capturePreview(0)
         val content = layoutInflater.inflate(R.layout.dialog_pause, null)
@@ -386,11 +438,12 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         label()
         filter.setOnClickListener { currentFilter = Prefs.nextFilter(currentFilter); metadata.setFilter(rom, currentFilter); retroView?.shader = shaderFor(currentFilter); label() }
         content.findViewById<Button>(R.id.btnAudioInfo).setOnClickListener {
-            AlertDialog.Builder(this).setTitle("Диагностика звука").setMessage("$audioInfo\n\nRefills — нехватка данных. Xruns — сбои вывода.\nШаг перемотки: $rewindStep мс, история: ${history.size} снимков.")
+            AlertDialog.Builder(this).setTitle("Звук и память").setMessage("$audioInfo\n\nRefills — нехватка данных. Xruns — сбои вывода.\nШаг перемотки: $rewindStep мс, история: ${history.size} снимков.\nПамять истории: ${history.bytes / 1024} / ${rewindBudget / 1024} КБ.\nПри нехватке памяти перемотка автоматически отключается.")
                 .setPositiveButton("Закрыть", null).show()
         }
-        fun exitGame() { dialog.setOnDismissListener(null); dialog.dismiss(); finish() }
+        fun exitGame(closeApp: Boolean = false) { dialog.setOnDismissListener(null); dialog.dismiss(); requestExit(closeApp) }
         content.findViewById<Button>(R.id.btnExit).setOnClickListener { exitGame() }
+        content.findViewById<Button>(R.id.btnExitApp).setOnClickListener { exitGame(true) }
         dialog.setOnKeyListener { _, code, event ->
             when (code) {
                 KeyEvent.KEYCODE_BUTTON_B -> { if (event.action == KeyEvent.ACTION_UP) dialog.dismiss(); true }
@@ -401,7 +454,25 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         dialog.setOnDismissListener { menuShowing = false; r2Key = false; r2Axis = false; if (!protectingSave) resumePlayer() }
         dialog.show(); content.findViewById<Button>(R.id.btnResume).requestFocus()
     }
+    private fun requestExit(closeApp: Boolean) {
+        if (exiting) return
+        exiting = true; checkpointJob?.cancel(); pausePlayer(); clearHistory(); CoverArt.clearMemory()
+        val progress = AlertDialog.Builder(this).setMessage("Сохранение и выход…").setCancelable(false).show()
+        lifecycleScope.launch {
+            try {
+                val result = withTimeoutOrNull(3000) {
+                    SaveWriter.flush()
+                    if (!protectingSave) saveAutomatically()?.await() else true
+                }
+                if (result == null) toast("Запись не завершилась вовремя. Предыдущее сохранение доступно.")
+            } finally {
+                progress.dismiss()
+                if (closeApp) AppExit.finish(this@GameActivity) else finish()
+            }
+        }
+    }
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (exiting) return true
         if (!ready || menuShowing || protectingSave) return super.dispatchKeyEvent(event)
         val view = retroView ?: return super.dispatchKeyEvent(event)
         val down = event.action == KeyEvent.ACTION_DOWN
@@ -428,6 +499,7 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
     }
     private var lastScrub = 0L
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
+        if (exiting) return true
         if (!ready || menuShowing || protectingSave || !event.isFromSource(InputDevice.SOURCE_JOYSTICK)) return super.dispatchGenericMotionEvent(event)
         controllerId = event.deviceId
         val rt = maxOf(event.getAxisValue(MotionEvent.AXIS_RTRIGGER), event.getAxisValue(MotionEvent.AXIS_GAS))

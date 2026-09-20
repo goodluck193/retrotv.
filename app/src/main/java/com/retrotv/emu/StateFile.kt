@@ -15,6 +15,9 @@ object StateFile {
     @Synchronized fun write(file: File, bytes: ByteArray, tag: String) {
         require(bytes.isNotEmpty() && bytes.size <= LIMIT) { "Недопустимый размер сохранения" }
         file.parentFile?.mkdirs()
+        require(ResourceBudget.canWrite(file.parentFile.usableSpace, bytes.size.toLong() + file.length() + 8192)) {
+            "На ТВ мало свободного места. Сохранение не заменено; освободите место."
+        }
         val temp = File(file.path + ".tmp")
         try {
             FileOutputStream(temp).use { raw ->
@@ -28,7 +31,7 @@ object StateFile {
                 raw.fd.sync()
             }
             // Never replace a valid backup with an already corrupted primary.
-            if (file.exists() && runCatching { decode(file, false) }.isSuccess) {
+            if (file.exists() && runCatching { decode(file, false, false) }.isSuccess) {
                 val backupTemp = File(file.path + ".bak.tmp")
                 try {
                     Files.copy(file.toPath(), backupTemp.toPath(), REPLACE_EXISTING)
@@ -55,15 +58,21 @@ object StateFile {
     }
 
     fun exists(file: File) = file.exists() || File(file.path + ".bak").exists()
-    private fun decode(file: File, backup: Boolean): Loaded = DataInputStream(file.inputStream().buffered()).use {
+    private fun decode(file: File, backup: Boolean, loadBytes: Boolean = true): Loaded = DataInputStream(file.inputStream().buffered()).use {
         require(file.length() <= LIMIT + 4096 && it.readInt() == MAGIC) { "Повреждённый файл сохранения" }
         val tag = it.readUTF()
         val size = it.readInt()
         require(size in 1..LIMIT && size <= file.length()) { "Неверный размер сохранения" }
         val crc = it.readLong()
-        val bytes = ByteArray(size)
-        it.readFully(bytes)
-        require(it.read() == -1 && CRC32().apply { update(bytes) }.value == crc) { "Сохранение повреждено" }
+        // Checking the previous generation must not allocate a second full state.
+        val bytes = ByteArray(if (loadBytes) size else minOf(size, 8192))
+        val checksum = CRC32(); var read = 0
+        while (read < size) {
+            val offset = if (loadBytes) read else 0
+            val n = minOf(size - read, bytes.size)
+            it.readFully(bytes, offset, n); checksum.update(bytes, offset, n); read += n
+        }
+        require(it.read() == -1 && checksum.value == crc) { "Сохранение повреждено" }
         Loaded(bytes, tag, backup)
     }
     private fun move(from: File, to: File) {

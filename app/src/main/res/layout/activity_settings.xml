@@ -64,6 +64,7 @@
             android:layout_width="wrap_content" android:layout_height="wrap_content"
             android:textColor="@color/text_dim" android:textSize="15sp" />
 
+        <Button android:id="@+id/btnClearCovers" style="@style/PauseButton" android:layout_width="wrap_content" android:layout_marginTop="16dp" android:text="Очистить кэш обложек" />
         <Button android:id="@+id/btnClearStates" style="@style/PauseButton"
             android:layout_marginTop="16dp"
             android:layout_width="wrap_content"

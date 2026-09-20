@@ -13,6 +13,7 @@
          Это самый безопасный для ТВ способ. -->
 
     <application
+        android:name=".RetroApplication"
         android:label="${appLabel}"
         android:icon="@drawable/app_icon"
         android:banner="@drawable/tv_banner"

@@ -25,6 +25,7 @@ class SaveStore(private val context: Context, val rom: Rom) {
         return if (StateFile.exists(file)) StateFile.read(file, rom.system.id).bytes else null
     }
     fun writePreview(slot: Int, bitmap: Bitmap) {
+        if (!ResourceBudget.canWrite(directory.usableSpace, 1024L * 1024, ResourceBudget.COVER_RESERVE)) return
         val file = preview(slot)
         val temp = File(file.path + ".tmp")
         try {
