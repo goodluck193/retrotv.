@@ -17,10 +17,14 @@ object Prefs {
         get() = sp(this).getString("smooth_lvl", "smart") ?: "smart"
         set(v) = sp(this).edit().putString("smooth_lvl", v).apply()
 
-    /** Стандартный звук (false) надёжнее на ТВ; низкая задержка (true) — если стандартный трещит. */
+    /** Совместимый OpenSL ES с запасом буфера (false); сокращённая задержка (true). */
     var Context.audioLowLatency: Boolean
         get() = sp(this).getBoolean("audio_ll", false)
         set(v) = sp(this).edit().putBoolean("audio_ll", v).apply()
+
+    var Context.downloadCovers: Boolean
+        get() = sp(this).getBoolean("covers", true)
+        set(v) = sp(this).edit().putBoolean("covers", v).apply()
 
     /** Высота рендера: 720 (по умолчанию, легче всего для ТВ), 1080 или 0 = родное разрешение. */
     var Context.renderHeight: Int

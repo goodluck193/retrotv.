@@ -57,8 +57,9 @@
             <RadioButton android:id="@+id/rewOff" style="@style/SettingsRadio" android:text="@string/rew_off" />
         </RadioGroup>
 
-        <TextView style="@style/SettingsHeader" android:layout_marginTop="24dp"
-            android:text="@string/storage" />
+        <CheckBox android:id="@+id/downloadCovers" style="@style/SettingsRadio" android:layout_marginTop="24dp" android:text="Загружать обложки из интернета" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Для поиска обложек передаётся название игры. Кэш доступен без сети." android:textColor="@color/text_dim" android:textSize="14sp" />
+        <TextView style="@style/SettingsHeader" android:layout_marginTop="24dp" android:text="@string/storage" />
         <TextView android:id="@+id/storageInfo"
             android:layout_width="wrap_content" android:layout_height="wrap_content"
             android:textColor="@color/text_dim" android:textSize="15sp" />

@@ -3,6 +3,7 @@ package com.retrotv.emu
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
@@ -22,7 +23,7 @@ import java.util.zip.ZipInputStream
  *  4. Копирование с подсчётом байт: если данные льются бесконечно
  *     (в т.ч. «zip-бомба» — архив, раздувающийся при распаковке) —
  *     операция обрывается ровно на лимите.
- *  5. Таймаут 60 секунд на всю операцию — зависшее чтение будет прервано.
+ *  5. Лимит 60 секунд проверяется между чтениями; блокирующий SAF-провайдер может задержать отмену.
  *  6. Запись сначала во временный .part-файл, затем атомарное переименование.
  *     При любой ошибке временный файл удаляется — мусора не остаётся.
  *  7. Проверка магических байт (NES / SEGA), чтобы не запускать не-ромы.
@@ -108,6 +109,8 @@ object RomImporter {
             }
         } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
             Result.Error("Операция заняла больше 60 секунд и была остановлена. Память ТВ не пострадала.")
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Result.Error("Ошибка импорта: ${e.message ?: e.javaClass.simpleName}. Ничего не записано.")
         } finally {
@@ -127,6 +130,8 @@ object RomImporter {
     ): Result = withContext(Dispatchers.IO) {
         ZipInputStream(raw.buffered()).use { zip ->
             var entries = 0
+            var skippedBytes = 0L
+            val skipBuffer = ByteArray(BUFFER_SIZE)
             while (true) {
                 ensureActive()
                 val entry = zip.nextEntry ?: break
@@ -135,12 +140,20 @@ object RomImporter {
                         "В архиве слишком много файлов (> $MAX_ZIP_ENTRIES). Импорт остановлен."
                     )
                 }
-                if (entry.isDirectory) { zip.closeEntry(); continue }
 
                 // Берём только имя файла, отбрасывая пути внутри архива
                 val entryName = sanitize(entry.name.substringAfterLast('/').substringAfterLast('\\'))
                 val system = SystemType.fromFileName(entryName)
-                if (system == null) { zip.closeEntry(); continue }
+                if (entry.isDirectory || system == null) {
+                    while (true) {
+                        ensureActive()
+                        val n = zip.read(skipBuffer)
+                        if (n < 0) break
+                        skippedBytes += n
+                        if (skippedBytes > SystemType.HARD_LIMIT_BYTES) return@withContext Result.Error("Архив содержит больше 32 МБ посторонних данных.")
+                    }
+                    zip.closeEntry(); continue
+                }
 
                 // Если архив честно сообщает размер после распаковки — проверяем заранее
                 val unpacked = entry.size
@@ -179,7 +192,7 @@ object RomImporter {
     ): Result = withContext(Dispatchers.IO) {
         val ext = fileName.substringAfterLast('.', "").lowercase()
         val limit = minOf(system.maxRomBytes, SystemType.HARD_LIMIT_BYTES)
-        val temp = File(context.cacheDir, "import_${System.currentTimeMillis()}.part")
+        val temp = File.createTempFile("import_", ".part", romsDir(context, system))
         onTemp(temp)
 
         var total = 0L
@@ -227,10 +240,7 @@ object RomImporter {
             val base = fileName.substringBeforeLast('.')
             dest = File(destDir, "${base}_${i++}.$ext")
         }
-        if (!temp.renameTo(dest)) {
-            temp.copyTo(dest, overwrite = true)
-            temp.delete()
-        }
+        java.nio.file.Files.move(temp.toPath(), dest.toPath(), java.nio.file.StandardCopyOption.ATOMIC_MOVE)
         Result.Success(Rom(dest, system))
     }
 

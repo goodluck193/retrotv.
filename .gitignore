@@ -6,3 +6,5 @@ local.properties
 *.iml
 *.jks
 *.keystore
+.cores/
+app/src/main/jniLibs/**/*.so

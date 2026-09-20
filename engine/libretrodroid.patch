@@ -1,8 +1,66 @@
 diff --git a/libretrodroid/src/main/cpp/libretrodroid.cpp b/libretrodroid/src/main/cpp/libretrodroid.cpp
-index 60640c4..49b2089 100644
+index 60640c4..0e9b513 100644
 --- a/libretrodroid/src/main/cpp/libretrodroid.cpp
 +++ b/libretrodroid/src/main/cpp/libretrodroid.cpp
-@@ -453,7 +453,7 @@ void LibretroDroid::step() {
+@@ -147,12 +147,13 @@ void LibretroDroid::setControllerType(unsigned int port, unsigned int type) {
+ bool LibretroDroid::unserializeState(int8_t *data, size_t size) {
+     std::lock_guard<std::mutex> lock(coreLock);
+ 
+-    return core->retro_unserialize(data, size);
++    return core && core->retro_unserialize(data, size);
+ }
+ 
+ JNIEXPORT jboolean JNICALL LibretroDroid::unserializeSRAM(int8_t* data, size_t size) {
+     std::lock_guard<std::mutex> lock(coreLock);
+ 
++    if (!core) return false;
+     size_t sramSize = core->retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
+     void *sramState = core->retro_get_memory_data(RETRO_MEMORY_SAVE_RAM);
+ 
+@@ -174,9 +175,12 @@ JNIEXPORT jboolean JNICALL LibretroDroid::unserializeSRAM(int8_t* data, size_t s
+ std::pair<int8_t*, size_t> LibretroDroid::serializeSRAM() {
+     std::lock_guard<std::mutex> lock(coreLock);
+ 
++    if (!core) throw std::runtime_error("Core is not ready");
+     size_t size = core->retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
++    void* source = core->retro_get_memory_data(RETRO_MEMORY_SAVE_RAM);
++    if (!source || size == 0) return {nullptr, 0};
+     auto* data = new int8_t[size];
+-    memcpy(data, (int8_t*) core->retro_get_memory_data(RETRO_MEMORY_SAVE_RAM), size);
++    memcpy(data, source, size);
+ 
+     return std::pair(data, size);
+ }
+@@ -408,6 +412,7 @@ void LibretroDroid::destroy() {
+     std::lock_guard<std::mutex> lock(coreLock);
+ 
+     LOGD("Performing libretrodroid destroy");
++    if (!core) return;
+ 
+     if (Environment::getInstance().getHwContextDestroy() != nullptr) {
+         Environment::getInstance().getHwContextDestroy()();
+@@ -427,7 +432,9 @@ void LibretroDroid::destroy() {
+ }
+ 
+ void LibretroDroid::resume() {
++    std::lock_guard<std::mutex> lock(coreLock);
+     LOGD("Performing libretrodroid resume");
++    if (!fpsSync || !audio || !video) return;
+ 
+     input = std::make_unique<Input>();
+ 
+@@ -437,8 +444,9 @@ void LibretroDroid::resume() {
+ }
+ 
+ void LibretroDroid::pause() {
++    std::lock_guard<std::mutex> lock(coreLock);
+     LOGD("Performing libretrodroid pause");
+-    audio->stop();
++    if (audio) audio->stop();
+ 
+     input = nullptr;
+ }
+@@ -453,7 +461,7 @@ void LibretroDroid::step() {
          unsigned requestedFrames = fpsSync->advanceFrames();
  
          // If the application runs too slow it's better to just skip those frames.
@@ -11,7 +69,7 @@ index 60640c4..49b2089 100644
      }
  
      for (size_t i = 0; i < frames * frameSpeed; i++)
-@@ -490,6 +490,11 @@ void LibretroDroid::step() {
+@@ -490,6 +498,11 @@ void LibretroDroid::step() {
      }
  }
  
@@ -23,7 +81,11 @@ index 60640c4..49b2089 100644
  float LibretroDroid::getAspectRatio() {
      float gameAspectRatio = Environment::getInstance().retrieveGameSpecificAspectRatio();
      return gameAspectRatio > 0 ? gameAspectRatio : defaultAspectRatio;
-@@ -576,7 +581,10 @@ std::pair<int8_t*, size_t> LibretroDroid::serializeState() {
+@@ -573,10 +586,14 @@ void LibretroDroid::reset() {
+ std::pair<int8_t*, size_t> LibretroDroid::serializeState() {
+     std::lock_guard<std::mutex> lock(coreLock);
+ 
++    if (!core) throw std::runtime_error("Core is not ready");
      size_t size = core->retro_serialize_size();
      auto data = new int8_t[size];
  
@@ -48,7 +110,7 @@ index b507aee..200be47 100644
  
      bool requiresVideoRefresh() const;
 diff --git a/libretrodroid/src/main/cpp/libretrodroidjni.cpp b/libretrodroid/src/main/cpp/libretrodroidjni.cpp
-index 2ec15cf..076ae56 100644
+index 2ec15cf..970ea08 100644
 --- a/libretrodroid/src/main/cpp/libretrodroidjni.cpp
 +++ b/libretrodroid/src/main/cpp/libretrodroidjni.cpp
 @@ -54,6 +54,11 @@ extern "C" {
@@ -74,13 +136,28 @@ index 2ec15cf..076ae56 100644
  
          return result;
  
-@@ -269,6 +275,7 @@ JNIEXPORT jbyteArray JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_seri
+@@ -249,9 +255,10 @@ JNIEXPORT jboolean JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_unseri
+         jbyte* data = env->GetByteArrayElements(sram, &isCopy);
+         jsize size = env->GetArrayLength(sram);
+ 
+-        LibretroDroid::getInstance().unserializeSRAM(data, size);
++        bool restored = LibretroDroid::getInstance().unserializeSRAM(data, size);
+ 
+         env->ReleaseByteArrayElements(sram, data, JNI_ABORT);
++        return restored ? JNI_TRUE : JNI_FALSE;
+ 
+     } catch (std::exception &exception) {
+         LOGE("Error in unserializeSRAM: %s", exception.what());
+@@ -269,8 +276,9 @@ JNIEXPORT jbyteArray JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_seri
      try {
          auto [data, size] = LibretroDroid::getInstance().serializeSRAM();
  
 +        std::unique_ptr<int8_t[]> owned(data);
          jbyteArray result = env->NewByteArray(size);
-         env->SetByteArrayRegion(result, 0, size, (jbyte *) data);
+-        env->SetByteArrayRegion(result, 0, size, (jbyte *) data);
++        if (result && size) env->SetByteArrayRegion(result, 0, size, data);
+ 
+         return result;
  
 diff --git a/libretrodroid/src/main/java/com/swordfish/libretrodroid/GLRetroView.kt b/libretrodroid/src/main/java/com/swordfish/libretrodroid/GLRetroView.kt
 index 7eb8602..81bb218 100644

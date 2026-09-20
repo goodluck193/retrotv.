@@ -35,13 +35,14 @@ object RomLibrary {
     fun stateFile(context: Context, rom: Rom): File =
         File(statesDir(context), "${rom.system.id}_${rom.file.name}.state")
 
-    /** Удаляет ром вместе с его сохранением состояния. */
+    /** По умолчанию сохраняет прогресс для повторного импорта. */
     fun delete(context: Context, rom: Rom, keepSaves: Boolean = true) {
-        rom.file.delete()
+        val id = rom.id
+        check(rom.file.delete()) { "Не удалось удалить игру" }
         File(rom.file.path + ".id").delete()
         if (!keepSaves) {
             stateFile(context, rom).delete()
-            File(context.filesDir, "saves/${rom.id}").deleteRecursively()
+            File(context.filesDir, "saves/$id").deleteRecursively()
         }
     }
 }
