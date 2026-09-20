@@ -12,22 +12,22 @@ object SaveWriter {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
     fun isIdle() = budget.idle()
     fun submit(context: Context, bytes: Long = 0, onRejected: () -> Unit = {}, block: () -> Unit): Deferred<Boolean> {
-        val app = context.applicationContext
+        val app = AppLanguage.context(context.applicationContext)
         if (!budget.acquire(bytes)) {
             onRejected()
-            Toast.makeText(app, "Запись ещё занята. Дождитесь завершения и повторите сохранение.", Toast.LENGTH_LONG).show()
+            Toast.makeText(app, app.getString(R.string.save_busy), Toast.LENGTH_LONG).show()
             return CompletableDeferred(false)
         }
         return scope.async {
             try { block(); true } catch (e: Exception) {
-                withContext(Dispatchers.Main) { Toast.makeText(app, "Ошибка записи сохранения: ${e.message}", Toast.LENGTH_LONG).show() }
+                withContext(Dispatchers.Main) { Toast.makeText(app, app.getString(R.string.save_failed, e.userMessage(app)), Toast.LENGTH_LONG).show() }
                 false
             } finally { budget.release(bytes) }
         }
     }
     suspend fun flush() {
         check(withTimeoutOrNull(5000) { while (!budget.idle()) delay(20); true } == true) {
-            "Запись сохранения не отвечает. Повторите позже."
+            "SAVE_BUSY"
         }
     }
 }

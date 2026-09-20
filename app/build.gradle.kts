@@ -10,22 +10,33 @@ android {
     defaultConfig {
         applicationId = "com.retrotv.emu"
         manifestPlaceholders["appLabel"] = "@string/app_name"
-        minSdk = 26          // Android 8.0+ (типичные TCL Android TV)
+        minSdk = 26          // Android 8.0+
         targetSdk = 34
-        versionCode = 7
-        versionName = "1.5.1"
+        versionCode = 8
+        versionName = "1.6.0"
         ndk {
-            // TCL бывают и 32-битные, и 64-битные — собираем оба ABI
+            // Both 32-bit and 64-bit TV chipsets.
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
+    }
+
+    signingConfigs {
+        create("previewTest") {
+            // Public test key: reproducible preview updates only, never a production identity.
+            storeFile = rootProject.file("config/preview-test.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
         }
     }
 
     buildTypes {
         create("preview") {
             initWith(getByName("debug"))
-            applicationIdSuffix = ".preview.memory"
+            applicationIdSuffix = ".preview.console"
             versionNameSuffix = "-preview"
-            manifestPlaceholders["appLabel"] = "RetroTV Preview 1.5.1"
+            signingConfig = signingConfigs.getByName("previewTest")
+            manifestPlaceholders["appLabel"] = "Retro Console Preview"
             matchingFallbacks += listOf("debug")
         }
         release {
@@ -35,7 +46,7 @@ android {
 
     packaging {
         jniLibs {
-            // Ядра должны быть распакованы на диск, чтобы dlopen работал на любом targetSdk
+            // Cores must be extracted for dlopen on all supported API levels.
             useLegacyPackaging = true
         }
     }
@@ -48,7 +59,7 @@ android {
 }
 
 dependencies {
-    // Pinned engine source with reviewed RetroTV audio and JNI patches.
+    // Pinned engine source with reviewed Retro Console audio and JNI patches.
     implementation(project(":emulation"))
 
     implementation("androidx.core:core-ktx:1.13.1")

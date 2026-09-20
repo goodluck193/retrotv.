@@ -1,5 +1,5 @@
 diff --git a/libretrodroid/src/main/cpp/libretrodroid.cpp b/libretrodroid/src/main/cpp/libretrodroid.cpp
-index 60640c4..66e8e10 100644
+index 60640c4..889bf46 100644
 --- a/libretrodroid/src/main/cpp/libretrodroid.cpp
 +++ b/libretrodroid/src/main/cpp/libretrodroid.cpp
 @@ -147,12 +147,13 @@ void LibretroDroid::setControllerType(unsigned int port, unsigned int type) {
@@ -186,10 +186,15 @@ index 60640c4..66e8e10 100644
      }
  
      for (size_t i = 0; i < frames * frameSpeed; i++)
-@@ -490,6 +514,11 @@ void LibretroDroid::step() {
+@@ -490,6 +514,16 @@ void LibretroDroid::step() {
      }
  }
  
++float LibretroDroid::displayAspectRatio() {
++    std::lock_guard<std::mutex> lock(coreLock);
++    return getAspectRatio();
++}
++
 +std::string LibretroDroid::audioDiagnostics() {
 +    std::lock_guard<std::mutex> lock(coreLock);
 +    return audio ? audio->diagnostics() : "Audio is not ready";
@@ -198,7 +203,7 @@ index 60640c4..66e8e10 100644
  float LibretroDroid::getAspectRatio() {
      float gameAspectRatio = Environment::getInstance().retrieveGameSpecificAspectRatio();
      return gameAspectRatio > 0 ? gameAspectRatio : defaultAspectRatio;
-@@ -573,12 +602,16 @@ void LibretroDroid::reset() {
+@@ -573,12 +607,16 @@ void LibretroDroid::reset() {
  std::pair<int8_t*, size_t> LibretroDroid::serializeState() {
      std::lock_guard<std::mutex> lock(coreLock);
  
@@ -218,7 +223,7 @@ index 60640c4..66e8e10 100644
  }
  
  void LibretroDroid::resetCheat() {
-@@ -590,7 +623,7 @@ void LibretroDroid::resetCheat() {
+@@ -590,7 +628,7 @@ void LibretroDroid::resetCheat() {
  void LibretroDroid::setCheat(unsigned index, bool enabled, const std::string& code) {
      std::lock_guard<std::mutex> lock(coreLock);
  
@@ -228,18 +233,20 @@ index 60640c4..66e8e10 100644
  
  bool LibretroDroid::requiresVideoRefresh() const {
 diff --git a/libretrodroid/src/main/cpp/libretrodroid.h b/libretrodroid/src/main/cpp/libretrodroid.h
-index b507aee..ddf4b6a 100644
+index b507aee..daf8a67 100644
 --- a/libretrodroid/src/main/cpp/libretrodroid.h
 +++ b/libretrodroid/src/main/cpp/libretrodroid.h
-@@ -107,6 +107,7 @@ public:
+@@ -107,7 +107,9 @@ public:
      void onTouchEvent(float xAxis, float yAxis);
  
      void refreshAspectRatio();
 +    std::string audioDiagnostics();
      float getAspectRatio();
++    float displayAspectRatio();
  
      bool requiresVideoRefresh() const;
-@@ -177,6 +178,11 @@ private:
+     void clearRequiresVideoRefresh();
+@@ -177,6 +179,11 @@ private:
      bool dirtyVideo = false;
  
      std::mutex coreLock;
@@ -252,13 +259,17 @@ index b507aee..ddf4b6a 100644
      std::unique_ptr<Core> core;
      std::unique_ptr<Audio> audio;
 diff --git a/libretrodroid/src/main/cpp/libretrodroidjni.cpp b/libretrodroid/src/main/cpp/libretrodroidjni.cpp
-index 2ec15cf..a708732 100644
+index 2ec15cf..a75c6b0 100644
 --- a/libretrodroid/src/main/cpp/libretrodroidjni.cpp
 +++ b/libretrodroid/src/main/cpp/libretrodroidjni.cpp
-@@ -54,6 +54,11 @@ extern "C" {
+@@ -54,6 +54,15 @@ extern "C" {
  
  extern "C" {
  
++JNIEXPORT jfloat JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_getAspectRatio(JNIEnv*, jclass) {
++    return LibretroDroid::getInstance().displayAspectRatio();
++}
++
 +JNIEXPORT jstring JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_audioDiagnostics(JNIEnv* env, jclass) {
 +    const auto value = LibretroDroid::getInstance().audioDiagnostics();
 +    return env->NewStringUTF(value.c_str());
@@ -267,7 +278,7 @@ index 2ec15cf..a708732 100644
  JNIEXPORT jint JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_availableDisks(
      JNIEnv* env,
      jclass obj
-@@ -198,8 +203,9 @@ JNIEXPORT jbyteArray JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_seri
+@@ -198,8 +207,9 @@ JNIEXPORT jbyteArray JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_seri
      try {
          auto [data, size] = LibretroDroid::getInstance().serializeState();
  
@@ -278,7 +289,7 @@ index 2ec15cf..a708732 100644
  
          return result;
  
-@@ -249,9 +255,10 @@ JNIEXPORT jboolean JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_unseri
+@@ -249,9 +259,10 @@ JNIEXPORT jboolean JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_unseri
          jbyte* data = env->GetByteArrayElements(sram, &isCopy);
          jsize size = env->GetArrayLength(sram);
  
@@ -290,7 +301,7 @@ index 2ec15cf..a708732 100644
  
      } catch (std::exception &exception) {
          LOGE("Error in unserializeSRAM: %s", exception.what());
-@@ -269,8 +276,9 @@ JNIEXPORT jbyteArray JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_seri
+@@ -269,8 +280,9 @@ JNIEXPORT jbyteArray JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_seri
      try {
          auto [data, size] = LibretroDroid::getInstance().serializeSRAM();
  
@@ -301,7 +312,7 @@ index 2ec15cf..a708732 100644
  
          return result;
  
-@@ -438,14 +446,16 @@ JNIEXPORT void JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_loadGameFr
+@@ -438,14 +450,16 @@ JNIEXPORT void JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_loadGameFr
  ) {
      try {
          size_t size = env->GetArrayLength(gameFileBytes);
@@ -513,14 +524,16 @@ index 7eb8602..91610da 100644
  
      private fun buildShader(config: ShaderConfig): GLRetroShader {
 diff --git a/libretrodroid/src/main/java/com/swordfish/libretrodroid/LibretroDroid.java b/libretrodroid/src/main/java/com/swordfish/libretrodroid/LibretroDroid.java
-index 50eafa1..f0db1f9 100644
+index 50eafa1..3b1ce0f 100644
 --- a/libretrodroid/src/main/java/com/swordfish/libretrodroid/LibretroDroid.java
 +++ b/libretrodroid/src/main/java/com/swordfish/libretrodroid/LibretroDroid.java
-@@ -98,6 +98,7 @@ public class LibretroDroid {
+@@ -98,6 +98,9 @@ public class LibretroDroid {
      public static native void loadGameFromBytes(byte[] gameFileBytes);
      public static native void loadGameFromVirtualFiles(List<DetachedVirtualFile> virtualFiles);
      public static native void resume();
 +    public static native String audioDiagnostics();
++
++    public static native float getAspectRatio();
  
      public static native void onSurfaceCreated();
      public static native void onSurfaceChanged(int width, int height);

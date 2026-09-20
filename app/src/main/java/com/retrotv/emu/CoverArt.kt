@@ -58,7 +58,7 @@ object CoverArt {
                     // Reserve 8 MiB for the two in-flight downloads, 4 MiB each.
                     DiskCache.trim(folder, 56L * ResourceBudget.MIB, 510)
                     val file = File(folder, rom.id + ".png")
-                    val missing = File(folder, rom.id + ".missing")
+                    val missing = File(folder, rom.id + ".missing-v2")
                     if (!file.exists() && context.downloadCovers &&
                         ResourceBudget.canWrite(folder.usableSpace, 8L * ResourceBudget.MIB, ResourceBudget.COVER_RESERVE) &&
                         (!missing.exists() || System.currentTimeMillis() - missing.lastModified() > 86_400_000)) {
@@ -67,10 +67,13 @@ object CoverArt {
                             SystemType.SNES -> "Nintendo_-_Super_Nintendo_Entertainment_System"
                             SystemType.MEGADRIVE -> "Sega_-_Mega_Drive_-_Genesis"
                         }
-                        for (name in listOf(rom.file.nameWithoutExtension, rom.title + " (USA)", rom.title + " (World)").distinct()) {
+                        val paths = CoverIndex.candidates(context, rom).ifEmpty {
+                            listOf("Named_Boxarts/${rom.file.nameWithoutExtension}.png")
+                        }
+                        for (path in paths) {
                             ensureActive()
-                            val encoded = URLEncoder.encode(name, "UTF-8").replace("+", "%20")
-                            if (download("https://raw.githubusercontent.com/libretro-thumbnails/$repo/master/Named_Boxarts/$encoded.png", file)) break
+                            val encoded = path.split('/').joinToString("/") { URLEncoder.encode(it, "UTF-8").replace("+", "%20") }
+                            if (download("https://raw.githubusercontent.com/libretro-thumbnails/$repo/master/$encoded", file)) break
                         }
                         runCatching { if (!file.exists()) missing.writeText("") else missing.delete() }
                     }

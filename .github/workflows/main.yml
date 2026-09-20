@@ -1,4 +1,4 @@
-name: Build RetroTV APK
+name: Build Retro Console APK
 on:
   push:
   workflow_dispatch:
@@ -25,6 +25,8 @@ jobs:
           gradle-version: '8.7'
       - name: Android tools
         run: sdkmanager 'platforms;android-34' 'build-tools;34.0.0' 'ndk;26.3.11579264' 'cmake;3.22.1'
+      - name: Localization and asset checks
+        run: python3 scripts/check_resources.py
       - name: Audio tests
         run: |
           g++ -std=c++17 -O2 -pthread -fsanitize=address,undefined -fno-omit-frame-pointer native/audio_test.cpp -o /tmp/audio-test
@@ -58,18 +60,20 @@ jobs:
             app/src/main/assets/licenses/genesis
       - name: Test and build
         run: ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:assemblePreview --no-daemon --max-workers=2
+      - name: Audit packaged content
+        run: python3 scripts/audit_apk.py app/build/outputs/apk/preview/app-preview.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: RetroTV-1.5.1-debug
+          name: RetroConsole-1.6.0-debug
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 90
       - uses: actions/upload-artifact@v4
         with:
-          name: RetroTV-1.5.1-preview
+          name: RetroConsole-1.6.0-preview
           path: app/build/outputs/apk/preview/app-preview.apk
           retention-days: 90
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: RetroTV-test-results
+          name: RetroConsole-test-results
           path: app/build/reports/tests/

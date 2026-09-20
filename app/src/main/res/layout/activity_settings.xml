@@ -11,6 +11,12 @@
         android:padding="40dp">
 
         <TextView style="@style/SettingsHeader" android:text="@string/settings" android:textSize="26sp" />
+        <Button android:id="@+id/btnLanguage" style="@style/PauseButton" android:text="@string/language" />
+        <Button android:id="@+id/btnControls" style="@style/PauseButton" android:text="@string/controls" />
+        <Button android:id="@+id/btnWallpaper" style="@style/PauseButton" android:text="@string/wallpaper" />
+        <View android:id="@+id/wallpaperPreview" android:layout_width="match_parent" android:layout_height="110dp" android:layout_marginTop="12dp" android:importantForAccessibility="no" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/wallpaper_hint" android:textSize="14sp" android:textColor="@color/text_dim" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="@string/performance_hint" android:textSize="14sp" android:textColor="@color/text_dim" />
 
         <TextView style="@style/SettingsHeader" android:layout_marginTop="24dp"
             android:text="@string/default_filter" />
@@ -26,6 +32,7 @@
             android:text="@string/smooth_level" />
         <RadioGroup android:id="@+id/smoothGroup"
             android:layout_width="wrap_content" android:layout_height="wrap_content">
+            <RadioButton android:id="@+id/slBasic" style="@style/SettingsRadio" android:text="@string/sl_basic" />
             <RadioButton android:id="@+id/slSmart" style="@style/SettingsRadio" android:text="@string/sl_smart" />
             <RadioButton android:id="@+id/slLight" style="@style/SettingsRadio" android:text="@string/sl_light" />
             <RadioButton android:id="@+id/slMedium" style="@style/SettingsRadio" android:text="@string/sl_medium" />
@@ -57,17 +64,18 @@
             <RadioButton android:id="@+id/rewOff" style="@style/SettingsRadio" android:text="@string/rew_off" />
         </RadioGroup>
 
-        <CheckBox android:id="@+id/downloadCovers" style="@style/SettingsRadio" android:layout_marginTop="24dp" android:text="Загружать обложки из интернета" />
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Для поиска обложек передаётся название игры. Кэш доступен без сети." android:textColor="@color/text_dim" android:textSize="14sp" />
+        <CheckBox android:id="@+id/downloadCovers" style="@style/SettingsRadio" android:layout_marginTop="24dp" android:text="@string/download_covers" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/cover_privacy" android:textColor="@color/text_dim" android:textSize="14sp" />
         <TextView style="@style/SettingsHeader" android:layout_marginTop="24dp" android:text="@string/storage" />
         <TextView android:id="@+id/storageInfo"
             android:layout_width="wrap_content" android:layout_height="wrap_content"
             android:textColor="@color/text_dim" android:textSize="15sp" />
 
-        <Button android:id="@+id/btnClearCovers" style="@style/PauseButton" android:layout_width="wrap_content" android:layout_marginTop="16dp" android:text="Очистить кэш обложек" />
+        <Button android:id="@+id/btnClearCovers" style="@style/PauseButton" android:layout_width="wrap_content" android:layout_marginTop="16dp" android:text="@string/clear_covers" />
         <Button android:id="@+id/btnClearStates" style="@style/PauseButton"
             android:layout_marginTop="16dp"
             android:layout_width="wrap_content"
             android:text="@string/clear_states" />
+        <Button android:id="@+id/btnLicenses" style="@style/PauseButton" android:text="@string/licenses" />
     </LinearLayout>
 </ScrollView>

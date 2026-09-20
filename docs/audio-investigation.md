@@ -1,91 +1,47 @@
-# Исследование треска звука
+# Audio crackle investigation
 
-Исходная версия: RetroTV 1.4 (`a7fefe3`). Изменения общие для NES/FCEUmm,
-SNES/Snes9x и Mega Drive/Genesis Plus GX.
+Baseline: RetroTV 1.4 (`a7fefe3`). The shared frontend defects affected NES/FCEUmm, SNES/Snes9x and Mega Drive/Genesis Plus GX.
 
-## Подтверждённые дефекты кода
+## Confirmed code defects
 
-- Audio callback LibretroDroid использовал `0.001 * numFrames` как интервал
-  регулятора: для 192 кадров при 48 кГц это 192 мс вместо 4 мс.
-- При нехватке PCM очередь дописывала нули, без предварительного накопления
-  и восстановления запаса. Ресэмплинг не сохранял дробную фазу между callback;
-  временный буфер зависел от частоты ядра, а не фактического callback.
-- При близких частотах игры и экрана выполнялся ровно один игровой кадр
-  на показ: пропущенные показы уменьшали объём звука. Догоняющая ветка
-  ограничивалась двумя кадрами. Приложение просило 60 Гц даже для PAL.
-- JNI не освобождал `new[]` после сериализации состояния и SRAM. Старый
-  режим перемотки повторял утечку каждые 10 секунд.
-- Пауза останавливала GLSurfaceView, но оставляла аудиопоток работать.
-  Исключение внутри задания GL могло навсегда оставить ожидающий поток на latch.
+- The LibretroDroid callback used `0.001 * numFrames` as the controller interval: 192 frames at 48 kHz became 192 ms instead of 4 ms.
+- PCM starvation inserted silence without startup accumulation or rebuffering. Resampling did not preserve fractional phase across callbacks; temporary storage depended on core rate rather than actual callback size.
+- Near matching game/display rates, one game frame ran per presentation, so missed presentations reduced audio production. Catch-up was capped at two frames, and the app requested 60 Hz even for PAL.
+- JNI leaked `new[]` buffers after state/SRAM serialization. Rewind repeated that leak.
+- Pause stopped GLSurfaceView but left the audio stream running. A GL task exception could leave another thread waiting forever on a latch.
 
-Эти дефекты дают общее объяснение проблемы всех трёх консолей. Без записи
-и счётчиков конкретного телевизора нельзя установить вклад каждого из них
-или гарантировать отсутствие дополнительных проблем драйвера.
+These shared defects explain plausible causes across all three consoles. Their individual contribution on a specific TV requires recordings and diagnostics; driver-specific problems may remain.
 
-## Новый тракт
+## Replacement pipeline
 
-Движок собирается из LibretroDroid `8835c30` с проверяемым патчем. Очередь
-SPSC измеряется в стереокадрах. Callback не выделяет память, не пишет на диск,
-не ждёт mutex или эмулятор. Используются частота и размер callback устройства.
-Ресэмплер сохраняет фазу; регулятор использует секунды и коррекцию до ±0,4%.
+The pinned LibretroDroid source is patched with a stereo SPSC queue. The audio callback allocates no memory, performs no disk IO, and waits for neither a mutex nor the emulator. It uses the device sample rate and callback size. The resampler preserves phase; the controller uses seconds and bounds correction to ±0.4%.
 
-Перед запуском накапливается 100 мс PCM в совместимом режиме и 40 мс в режиме
-низкой задержки. Это запас приложения, а не полная задержка вывода. При нехватке
-данных сигнал затухает, запас растёт шагами 20 мс до двойного исходного,
-после чего поток снова запускает воспроизведение. Длительная нехватка CPU
-всё ещё может вызывать паузы: невыработанный звук невозможно восстановить.
+Playback accumulates 100 ms PCM in compatible mode or 40 ms in low-latency mode. This is an app buffer, not total output latency. On starvation, output fades, reserve increases in 20 ms steps up to twice the initial reserve, and playback starts again after refilling. Sustained CPU starvation can still interrupt playback.
 
-Совместимый режим использует OpenSL ES. Низкая задержка разрешает AAudio через
-Oboe с возвратом к OpenSL ES при ошибке открытия. После отключения аудиомаршрута
-поток открывается заново. Счётчики: refills, dropped frames, device xruns.
+Compatible mode uses OpenSL ES. Low latency permits AAudio through Oboe with fallback if opening fails. A disconnected route reopens the stream. Diagnostics expose refills, dropped frames and device xruns.
 
-Темп игры следует монотонным часам и частоте ядра, включая PAL/NTSC и экраны
-50/60/120 Гц. До четырёх игровых кадров на итерацию компенсируют короткие
-задержки; после большой паузы часы сбрасываются. Нет сна под mutex ядра.
-Меню и фон останавливают игру и звук; снимки JNI освобождаются через RAII.
+A monotonic clock follows the core's PAL/NTSC rate independently of 50/60/120 Hz screens. Up to four frames compensate for short stalls; long pauses reset timing. There is no sleeping while holding the core mutex. Pause/background stop emulation and audio. RAII releases serialized buffers.
 
-## Перемотка DualSense
+## Rewind and testing
 
-R2: удерживать для выбора более ранних моментов, отпустить для продолжения.
-Крестовина ←/→ уточняет выбор, ○/Back отменяет. L2 открывает меню; Options
-остаётся Start. История снимается каждые 500 мс; если сериализация занимает
-больше 12 мс, шаг становится 1 сек. Максимум 120 снимков и 24 МиБ вместе
-с миниатюрами. Фактическая глубина зависит от размера состояния ядра.
+Current 1.6 controls: hold D-pad Left, adjust with the left stick, release to apply, Circle/Back to cancel; touchpad click opens the menu. Capture interval is 500 ms, increased to 1 second if serialization exceeds 12 ms. Memory pressure and byte/count budgets bound history.
 
-Во время просмотра история не загружается в ядро: показываются миниатюры,
-а эмуляция и звук стоят на паузе. Выбранное состояние применяется при отпускании.
-Будущие снимки удаляются. Ошибочная загрузка пытается восстановить исходное
-состояние; повреждение не должно молча заменять автосохранение.
+Only thumbnails are browsed while the core and audio are paused. Applying a state discards its future. Failed restores attempt rollback and protect existing saves.
 
-## Проверки
+`native/audio_test.cpp` covers 144 combinations of core rates 32040/44100/48000 Hz, game rates 50/59.94/60.0988 Hz, displays 30/50/60/120 Hz and callback sizes 96/192/512/960 frames with presentation gaps. Additional checks cover a 60000-frame callback, starvation/recovery, long pause and concurrent producer/consumer operation. ASan/UBSan run in CI; local ptrace environments may require `ASAN_OPTIONS=detect_leaks=0`.
 
-`native/audio_test.cpp`: 144 сочетания входных частот 32040/44100/48000 Гц,
-игровых 50/59,94/60,0988 Гц, экранных 30/50/60/120 Гц и callback 96/192/512/960
-кадров с периодическими пропусками показов. Проверяются underflow/overflow,
-темп и целостность стерео. Дополнительно — callback на 60000 кадров, голодание,
-восстановление, длительная пауза и независимые producer/consumer.
+These tests check buffering, timing and stereo integrity; they cannot hear the Android driver output.
 
-Локальная проверка запускается с ASan/UBSan и `ASAN_OPTIONS=detect_leaks=0`,
-поскольку LSan несовместим с ptrace среды. CI запускает стандартный вариант.
-JVM-тесты проверяют целостность сохранений, резервную копию, несовпадение
-версии ядра, диагонали, лимит памяти истории и отсечение будущих снимков.
-Эти проверки не измеряют слышимый результат Android-драйвера.
+## Physical TV protocol
 
-## Протокол для телевизора
+1. Compatible audio, 720p, at least 10 minutes of each console with audible game sound.
+2. Open Audio and memory: record backend, rates, refills, dropped frames and xruns, captured before pausing audio.
+3. Repeat rewind/apply/cancel, save/load, filter changes, Home/resume, and controller disconnect/reconnect.
+4. Compare available 50/60 Hz modes and the actual output route: speakers, Bluetooth or HDMI. Test low latency separately.
 
-1. Совместимый звук, 720p, по 10 минут NES/SNES/Sega со звуком.
-2. Пауза → Диагностика звука: backend, частоты, refills/dropped/xruns.
-   Данные снимаются до остановки аудиопотока.
-3. Несколько удержаний/отпусканий R2, отмена кружком, ←/→, сохранение/загрузка,
-   смена фильтра, Home/возврат, отключение и подключение DualSense.
-4. Проверить доступные режимы экрана 50/60 Гц и используемый выход звука
-   (динамики, Bluetooth, HDMI). Низкую задержку сравнивать отдельно.
+## Primary references
 
-## Первоисточники
-
-- [LibretroDroid Audio](https://github.com/Swordfish90/LibretroDroid/blob/0.14.0/libretrodroid/src/main/cpp/audio.cpp)
-- [LibretroDroid FPSSync](https://github.com/Swordfish90/LibretroDroid/blob/0.14.0/libretrodroid/src/main/cpp/fpssync.cpp)
+- [Original LibretroDroid audio](https://github.com/Swordfish90/LibretroDroid/blob/0.14.0/libretrodroid/src/main/cpp/audio.cpp)
+- [Original frame synchronization](https://github.com/Swordfish90/LibretroDroid/blob/0.14.0/libretrodroid/src/main/cpp/fpssync.cpp)
 - [Android / Oboe](https://developer.android.com/games/sdk/oboe/low-latency-audio)
-- [Oboe: callbacks, buffers, disconnects](https://github.com/google/oboe/blob/main/docs/FullGuide.md)
-- [Nintendo: rewind](https://www.nintendo.com/us/store/products/nintendo-entertainment-system-nintendo-classics-switch/)
-- [DualSense и Android](https://www.playstation.com/en-us/support/hardware/pair-dualsense-controller-bluetooth/)
+- [Oboe callbacks, buffers and disconnects](https://github.com/google/oboe/blob/main/docs/FullGuide.md)

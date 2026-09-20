@@ -1,113 +1,81 @@
-# RetroTV 1.5
+# Retro Console 1.6
 
-NES / Dendy, Super Nintendo и Sega Mega Drive на Android TV 8+.
-Пульт и геймпад DualSense, ARM 32/64 бит.
+A personal, noncommercial retro gaming app for Android TV 8+. Play your own NES / Dendy, Super Nintendo and Sega Mega Drive files with a DualSense controller. ARM 32-bit and 64-bit builds. **No games or game ROM downloads are included.**
 
-## Новое
+## What changed
 
-- Переработан общий звуковой тракт: непрерывный ресэмплинг, предварительный
-  запас PCM, восстановление после нехватки данных, темп игры независимо от
-  частоты экрана. Совместимый OpenSL ES по умолчанию, настройка низкой задержки.
-- Исправлена утечка памяти снимков JNI; меню останавливает игру и звук.
-- Перемотка с предпросмотром: удержание R2, уточнение крестовиной, отмена ○.
-  Шаг 0,5 секунды (1 секунда при медленной сериализации); до 120 снимков,
-  не более 24 МиБ вместе с миниатюрами. Глубина зависит от размера состояния.
-- «Продолжить», недавние игры, избранное, поиск, фильтр по консоли, обложки.
-- Автосохранение каждые 30 секунд и при уходе из игры; три ручных слота
-  с датами и миниатюрами. SRAM картриджа сохраняется отдельно.
-- Контроль целостности, атомарная запись, предыдущая исправная копия.
-  Старое одиночное сохранение переносится в слот 1; оригинал остаётся.
-- Фильтр картинки для каждой игры, смена без перезапуска.
-- Исправлены диагонали крестовины; отключение геймпада ставит игру на паузу.
-- Ограничение объёма пропускаемых ZIP-записей и атомарная публикация ROM.
-- Движок и три ядра собираются из зафиксированных исходников.
-
-[Исследование звука и протокол проверки на ТВ](docs/audio-investigation.md).
-Автоматические проверки не заменяют прослушивание на конкретном телевизоре.
+- A simpler library: select a game to resume its autosave. Hold ✕ / OK for favorites, restart or deletion. Search, recent games and console categories remain available.
+- DualSense controls tailored to left-stick play, with preview rewind on D-pad Left and pause on the touchpad click.
+- Black side borders by default, plus five static backgrounds: Midnight, Quiet Grid, Dunes, Forest and Arcade. Game proportions are preserved. Backgrounds allocate no image cache and run no animation loop.
+- English by default; Russian, Spanish, Portuguese, French, German and Italian selectable in Settings. All application messages are translated.
+- Better cover matching across regional names and punctuation, including Desert Demolition. A bundled filename index avoids online catalog searches on the TV. Images are optional, downloaded on demand and cached with fixed limits.
+- An original app icon and TV launcher banner. A lightweight bilinear smoothing option; sharp pixels and 720p remain the default.
+- Audio, rewind, memory limits and safe exit improvements from 1.5 / 1.5.1 are retained.
 
 ## DualSense
 
-| Кнопка | Действие |
-|---|---|
-| Крестовина / левый стик | Движение |
-| ✕ ○ □ △, L1/R1 | Кнопки консоли |
+| Control | During a game |
+| --- | --- |
+| Left stick | Movement, including diagonals |
+| ✕ ○ □ △ | Console face buttons |
+| L2 / R2 | SNES L / R; L1 / R1 also work |
 | Options / Create | Start / Select |
-| L2 или L3+R3 | Меню паузы |
-| Удерживать R2 | Перемотка назад с предпросмотром |
-| ← / → при перемотке | Уточнить момент; автоматическая прокрутка остановится |
-| Отпустить R2 | Продолжить с выбранного момента |
-| ○ или Back при перемотке | Отменить и вернуться к исходному месту |
-| ○ в меню паузы | Продолжить |
-| Back в игре / меню паузы | Пауза / выход в библиотеку |
+| Touchpad **click** | Pause menu |
+| Hold D-pad ← | Rewind with preview |
+| Left stick while rewinding | Adjust the selected moment; stops automatic scrubbing |
+| Release D-pad ← | Continue from the selected moment |
+| ○ or Back while rewinding | Cancel and return to the original moment |
+| Right stick, R3, L3 | Disabled |
+| TV remote Back | Pause; from the pause menu, save and return to the library |
+| ○ in the pause menu | Resume |
 
-Options остаётся кнопкой Start игры. PS обслуживается системой Android.
-R2 не открывает перемотку повторно до отпускания после отмены. Звук во время
-выбора момента остановлен. После восстановления будущие снимки удаляются.
+The D-pad is reserved during gameplay because this profile uses the left stick for movement. D-pad navigation still works in menus. Touchpad swipes do nothing. The PS logo button is controlled by Android; it is not the touchpad click.
 
-## Библиотека и сохранения
+Android exposes Sony touchpad clicks as mouse-button events on many kernels. Both button and mouse-event paths are handled. Some TV firmware consumes or does not expose the touchpad device; use remote Back on such devices. Real DualSense / TV testing is still required; unit tests cannot validate vendor firmware.
 
-«Добавить игру» выбирает один ROM или ZIP системным диалогом. Поддерживаются
-`.nes`, `.sfc`, `.smc`, `.md`, `.gen`, `.bin`, `.smd`. Из ZIP берётся первый
-подходящий ROM. Копия хранится в приложении; флешка затем не нужна.
+## Saves, audio and resource limits
 
-Нажатие карточки продолжает автосохранение. Долгое ✕ / OK: избранное,
-начать заново или удалить. При удалении по умолчанию прогресс остаётся;
-повторный импорт того же ROM находит его по SHA-256 содержимого.
+Autosave every 30 seconds and on leaving the game; three manual slots with timestamps and thumbnails. Cartridge SRAM is separate. Saves use checksums, atomic writes and a previous good backup. A changed core fingerprint is rejected instead of silently loading an incompatible state. Removing a game keeps its progress by default; reimporting the same content finds it by SHA-256.
 
-Новая игра заменяет автосохранение; ручные слоты и SRAM остаются.
-Неподходящая версия состояния не загружается молча. Кнопка очистки снимков
-удаляет слоты, автосохранение и резервные копии, сохраняя SRAM картриджа.
-При отключении питания запись самого последнего кадра не гарантируется.
+Rewind captures every 500 ms, or 1 second on slow devices. At most 120 snapshots, including previews, fit within 1/16 of the Java heap and 24 MiB (6 MiB on low-RAM devices). Under memory pressure, history is cleared and disabled until the next launch. The core is paused during preview; the chosen state is applied only on release.
 
-Обложки необязательны: их загрузка отключается в настройках. Внешнему серверу
-libretro-thumbnails передаётся название игры, не содержимое ROM. Кэш доступен
-без сети; для ненайденной обложки показывается название консоли.
+The audio pipeline uses continuous fractional resampling, a bounded PCM queue, rebuffering and a monotonic game clock. Compatible OpenSL ES audio defaults to a 100 ms app buffer; optional low latency uses 40 ms. This is buffering, not total output latency. Short scheduling gaps are absorbed; sustained insufficient CPU performance can still cause pauses.
 
-## Сборка
+Pause stops emulation/audio and allows the TV screensaver. **Save and exit application** closes the Android task after a bounded save wait. It does not turn off the physical TV. Android may keep a stopped process cached and reclaim it when needed. No force-kill or forced garbage collection is used.
 
-Java 17, Python 3, Git, Android SDK 34 / Build Tools 34.0.0,
-NDK 26.3.11579264, CMake 3.22.1. Укажите `ANDROID_HOME` и `JAVA_HOME`.
+[Audio investigation](docs/audio-investigation.md) · [Memory and exit](docs/memory-and-exit.md) · [1.6 implementation and TV checks](docs/retro-console-1.6.md)
+
+## Import and cover art
+
+Use **Add game** to select one file through Android's document picker. Formats: `.nes`, `.sfc`, `.smc`, `.md`, `.gen`, `.bin`, `.smd`, or ZIP containing a supported game. Files are copied into private app storage; broad storage permission is not requested.
+
+Limits: NES 8 MiB; SNES/Sega 16 MiB; source file 32 MiB; 200 ZIP entries; 32 MiB of skipped archive data; at least 200 MiB storage reserve. The 60-second import timeout is checked between reads; a blocked document provider can delay cancellation.
+
+Cover art is optional under Settings. Only game names are sent to GitHub / Libretro Thumbnails, never ROM contents. A missing match shows the console name. No commercial box art is bundled. Cover ownership is separate from emulator source licenses. RAM cache is bounded; disk cache is at most 64 MiB including two downloads, with a file-count limit. Clear it independently of games and saves.
+
+## Build
+
+Java 17, Python 3, Git, Android SDK 34, Build Tools 34.0.0, NDK 26.3.11579264 and CMake 3.22.1. Set `ANDROID_HOME` and `JAVA_HOME`.
 
 ```sh
 sdkmanager 'platforms;android-34' 'build-tools;34.0.0' 'ndk;26.3.11579264' 'cmake;3.22.1'
 python3 scripts/prepare_engine.py
 python3 scripts/build_cores.py
-./gradlew :app:testDebugUnitTest :app:assembleDebug
+python3 scripts/check_resources.py
+./gradlew :app:testDebugUnitTest :app:assembleDebug :app:assemblePreview
+python3 scripts/audit_apk.py app/build/outputs/apk/preview/app-preview.apk
 ```
 
-Подготовку движка и ядер выполните до открытия в Android Studio.
-Обычный APK: `app/build/outputs/apk/debug/app-debug.apk`.
-Для проверки рядом с установленной версией: `./gradlew :app:assemblePreview`.
-Файл `app/build/outputs/apk/preview/app-preview.apk` устанавливается как отдельная
-**RetroTV Preview** (`com.retrotv.emu.preview`), с собственной библиотекой —
-нужно заново добавить ROM. GitHub Actions публикует обе сборки на 90 дней. SHA ядер — в `engine/cores.lock.json`, исходный
-движок — в `scripts/prepare_engine.py`, патч — в `engine/libretrodroid.patch`,
-новые звук и часы — в `native/`.
+Prepare the engine and cores before opening Android Studio. Engine patches live in `engine/libretrodroid.patch`; native audio/clock code in `native/`; exact core sources in `engine/cores.lock.json`. `scripts/update_cover_index.py` refreshes filename metadata during development; it never runs on the TV. Source trees for the current index are recorded in `engine/cover-sources.json`.
 
-Для обновления поверх старой установки нужен тот же ключ подписи APK.
-Debug-ключи разных компьютеров и запусков CI могут отличаться. Не удаляйте
-приложение ради смены подписи: удаление стирает игры и сохранения. Для
-постоянных обновлений используйте один собственный ключ.
+The normal debug package remains `com.retrotv.emu` to preserve data compatibility when signed with your existing key. The standalone **Retro Console Preview** uses `com.retrotv.emu.preview.console`, with its own library and saves. It can coexist with earlier RetroTV installations. Add your game files again to test it. **Do not uninstall an older app to resolve a signing conflict: uninstalling deletes its private games and progress.**
 
-## Проверки
+Preview 1.6 introduces a consistent, deliberately public **test-only** key at `config/preview-test.keystore` (alias `androiddebugkey`, password `android`). Future previews can update this package with the same signature. This is not a production identity; anyone with the public key material can sign a preview build, so install only builds you trust. A release must use your own private signing key. Earlier CI-generated private debug keys are unavailable, so 1.6 cannot update those preview packages in place or read their private saves.
 
-```sh
-g++ -std=c++17 -O2 -pthread -fsanitize=address,undefined -fno-omit-frame-pointer native/audio_test.cpp -o /tmp/retrotv-audio-test
-/tmp/retrotv-audio-test
-./gradlew :app:testDebugUnitTest
-```
+GitHub Actions publishes debug/preview APKs and test reports for 90 days. It runs native audio and resource sanitizers, JVM tests, locale checks, and an APK asset audit. These tests do not replace listening and controller tests on a physical TV.
 
-144 сценария частот/размеров аудиоблока, восстановление после нехватки данных,
-большие callback, параллельная очередь, целостность/резервные копии сохранений,
-диагонали и ограничения истории перемотки. Результаты сборки — в Actions.
+## Personal use and licenses
 
-Импорт: NES до 8 МБ, SNES/Sega до 16 МБ, исходный файл до 32 МБ, до 200 ZIP-записей
-и 32 МБ пропускаемых распакованных данных. Лимит 60 секунд проверяется между
-чтениями; блокирующий системный файловый провайдер может задержать отмену.
+This project is for personal, noncommercial use. Snes9x and Genesis Plus GX impose noncommercial conditions; other components have their own obligations. Keeping the repository private does not change those conditions. Retain notices and review all licenses before redistribution or commercial use. The absence of ROMs is not a guarantee against every intellectual-property claim, and the display name is not a trademark clearance.
 
-## Компоненты
-
-[Лицензии и исходники](THIRD_PARTY.md). ROM-файлы в APK не входят.
-
-
-Проверка памяти и завершения приложения (1.5.1): [пределы, исправления и ограничения](docs/memory-and-exit.md).
+[Third-party sources and licenses](THIRD_PARTY.md). The app also exposes license texts in Settings. Console names identify compatible formats and do not imply affiliation with Nintendo, Sega or Sony.

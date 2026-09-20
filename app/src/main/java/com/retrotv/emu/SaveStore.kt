@@ -8,7 +8,7 @@ import java.security.MessageDigest
 class SaveStore(private val context: Context, val rom: Rom) {
     val directory = File(context.filesDir, "saves/${rom.id}").apply { mkdirs() }
     private val coreTag: String by lazy {
-        val core = CoreProvider.corePath(context, rom.system) ?: error("Ядро не найдено")
+        val core = CoreProvider.corePath(context, rom.system) ?: error("CORE_MISSING")
         rom.system.id + ":" + sha256(core)
     }
     fun state(slot: Int) = File(directory, if (slot == 0) "auto.state" else "slot-$slot.state")

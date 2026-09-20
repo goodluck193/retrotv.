@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the exact upstream engine with reviewable RetroTV source changes."""
+"""Build the exact upstream engine with reviewable Retro Console source changes."""
 import pathlib
 import shutil
 import subprocess

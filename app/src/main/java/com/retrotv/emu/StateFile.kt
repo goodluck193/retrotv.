@@ -13,10 +13,10 @@ object StateFile {
     data class Loaded(val bytes: ByteArray, val tag: String, val fromBackup: Boolean)
 
     @Synchronized fun write(file: File, bytes: ByteArray, tag: String) {
-        require(bytes.isNotEmpty() && bytes.size <= LIMIT) { "Недопустимый размер сохранения" }
+        require(bytes.isNotEmpty() && bytes.size <= LIMIT) { "STATE_SIZE" }
         file.parentFile?.mkdirs()
         require(ResourceBudget.canWrite(file.parentFile.usableSpace, bytes.size.toLong() + file.length() + 8192)) {
-            "На ТВ мало свободного места. Сохранение не заменено; освободите место."
+            "STATE_SPACE"
         }
         val temp = File(file.path + ".tmp")
         try {
@@ -49,20 +49,20 @@ object StateFile {
             try {
                 val loaded = decode(candidate, backup)
                 require(expectedTag == null || loaded.tag == expectedTag) {
-                    "Сохранение создано другой версией ядра. Внутриигровой прогресс сохранён отдельно."
+                    "STATE_CORE"
                 }
                 return loaded
             } catch (e: Exception) { last = e }
         }
-        throw IOException(last?.message ?: "Сохранения пока нет", last)
+        throw IOException(last?.message ?: "STATE_MISSING", last)
     }
 
     fun exists(file: File) = file.exists() || File(file.path + ".bak").exists()
     private fun decode(file: File, backup: Boolean, loadBytes: Boolean = true): Loaded = DataInputStream(file.inputStream().buffered()).use {
-        require(file.length() <= LIMIT + 4096 && it.readInt() == MAGIC) { "Повреждённый файл сохранения" }
+        require(file.length() <= LIMIT + 4096 && it.readInt() == MAGIC) { "STATE_DAMAGED" }
         val tag = it.readUTF()
         val size = it.readInt()
-        require(size in 1..LIMIT && size <= file.length()) { "Неверный размер сохранения" }
+        require(size in 1..LIMIT && size <= file.length()) { "STATE_SIZE" }
         val crc = it.readLong()
         // Checking the previous generation must not allocate a second full state.
         val bytes = ByteArray(if (loadBytes) size else minOf(size, 8192))
@@ -72,7 +72,7 @@ object StateFile {
             val n = minOf(size - read, bytes.size)
             it.readFully(bytes, offset, n); checksum.update(bytes, offset, n); read += n
         }
-        require(it.read() == -1 && checksum.value == crc) { "Сохранение повреждено" }
+        require(it.read() == -1 && checksum.value == crc) { "STATE_DAMAGED" }
         Loaded(bytes, tag, backup)
     }
     private fun move(from: File, to: File) {

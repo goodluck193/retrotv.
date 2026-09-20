@@ -35,10 +35,10 @@ object RomLibrary {
     fun stateFile(context: Context, rom: Rom): File =
         File(statesDir(context), "${rom.system.id}_${rom.file.name}.state")
 
-    /** По умолчанию сохраняет прогресс для повторного импорта. */
+
     fun delete(context: Context, rom: Rom, keepSaves: Boolean = true) {
         val id = rom.id
-        check(rom.file.delete()) { "Не удалось удалить игру" }
+        check(rom.file.delete()) { "DELETE_FAILED" }
         File(rom.file.path + ".id").delete()
         if (!keepSaves) {
             stateFile(context, rom).delete()
@@ -47,11 +47,7 @@ object RomLibrary {
     }
 }
 
-/**
- * Ядра-эмуляторы (libretro) упакованы внутрь APK как нативные библиотеки.
- * Так безопаснее и надёжнее: ничего не скачивается на ТВ и не исполняется
- * из записываемых папок (что запрещено на новых версиях Android).
- */
+
 object CoreProvider {
     fun corePath(context: Context, system: SystemType): File? {
         val f = File(context.applicationInfo.nativeLibraryDir, system.coreLibName)

@@ -25,9 +25,10 @@ for core in json.loads((ROOT / 'engine/cores.lock.json').read_text()):
         shutil.copyfile(build.parent / 'libs' / abi / 'libretro.so', dest)
     licenses = ROOT / 'app/src/main/assets/licenses' / core['name']
     licenses.mkdir(parents=True, exist_ok=True)
-    for pattern in ('*LICENSE*', '*COPYING*', '*license*'):
-        for file in source.rglob(pattern):
-            if file.is_file() and '.git' not in file.parts:
-                target = licenses / str(file.relative_to(source)).replace('/', '_')
-                shutil.copyfile(file, target)
+    # Match case-insensitively: FCEUmm's top-level GPL text is named Copying.
+    for file in source.rglob('*'):
+        if file.is_file() and '.git' not in file.parts and any(word in file.name.lower() for word in ('license', 'copying', 'copyright', 'notice')):
+            if file.stat().st_size > 512 * 1024: continue
+            target = licenses / str(file.relative_to(source)).replace('/', '_')
+            shutil.copyfile(file, target)
     print('Built', core['name'], core['revision'], flush=True)

@@ -1,35 +1,34 @@
-# Память и выход — RetroTV 1.5.1
+# Memory limits and exit behavior
 
-Проверка обнаружила и устранила накопление памяти ROM при повторных запусках, пропуск native destroy после ошибки запуска, неограниченную очередь записи и отсутствие очистки при давлении памяти. Полную память процесса составляют также ядро, Java/Android, ROM, OpenGL и драйвер звука: лимит истории не является лимитом всего приложения.
+The 1.5.1 investigation fixed retained native ROM buffers after repeated launches, skipped native destruction after startup errors, an unbounded save queue, and missing memory-pressure cleanup. These fixes remain in 1.6. The core, Java/Android, ROM, OpenGL and audio driver also consume memory: a rewind budget is not a cap on total process RSS.
 
-## Реализованные ограничения
+## Bounds and ownership
 
-- История перемотки вместе с миниатюрами: не более 1/16 Java heap и 24 МиБ; для устройств low-RAM — не более 6 МиБ. Максимум 120 снимков, старые освобождаются первыми. При уходе в фон история удаляется.
-- Проверка MemoryInfo и свободного Java heap каждые 2 секунды во время использования игры. При нехватке ресурсов удаляются необязательные изображения, перемотка отключается до следующего запуска. onTrimMemory/onLowMemory дополняют проверку: Android 14+ больше не присылает прежние уровни RUNNING_LOW/CRITICAL, поэтому полагаться только на callback нельзя.
-- Кэш обложек в RAM: не более 1/32 heap, 12 МиБ в обычном режиме или 4 МиБ для low-RAM. При уходе библиотеки в фон отменяются её загрузки, отсоединяются ImageView/RecyclerView и очищается кэш. Результат старой загрузки не возвращается в очищенный кэш.
-- Обложки на диске: целевой размер 56 МиБ плюс не более двух загрузок по 4 МиБ; ограничено и число файлов, включая пустые маркеры отсутствующих обложек. При первом обращении удаляются оставшиеся после прерывания .part. Настройки содержат «Очистить кэш обложек». Кэш никогда не удаляет ROM и прогресс.
-- Очередь сохранений: максимум 3 задания, вместе с выполняющимся; полезные данные не более 1/8 heap и 16 МиБ. Новая работа при заполнении отклоняется с сообщением. Ожидание записи ограничено по времени; дисковая запись работает отдельно от UI.
-- При сохранении резервируется 64 МиБ свободного диска с учётом временного файла и копии прежнего состояния. Скачивание обложек и импорт ROM оставляют больший резерв 200 МиБ. Записи других приложений вне контроля RetroTV.
-- При проверке старого сохранения CRC читается блоками по 8 КиБ без дополнительной полной копии состояния.
-- Native ROM-буфер имеет одного владельца и сохраняется ровно до выгрузки ядра. Файлы, дескрипторы и буферы освобождаются и на ошибках. Неизвестный/отрицательный/слишком большой размер отсекается до выделения памяти; предел native ROM/состояния/SRAM — 32 МиБ.
-- Прекращено создание отдельной coroutine на каждый видеокадр. GL-поток использует обычный приоритет. Исключение запуска больше не препятствует destroy.
+- Rewind snapshots plus thumbnails: at most 1/16 Java heap, 24 MiB normally or 6 MiB on low-RAM devices, and 120 entries. Oldest entries are freed first; backgrounding clears history.
+- MemoryInfo and available Java heap are checked every two seconds in gameplay. Low memory clears optional data and disables rewind until the next launch. Trim/low-memory callbacks supplement polling; recent Android versions do not provide all legacy running-pressure notifications.
+- Cover RAM cache: 1/32 heap, capped at 12 MiB normally or 4 MiB for low-RAM devices. Leaving the library cancels its jobs, releases ImageViews and recycler holders, and evicts cache. Epoch checks prevent an older download from repopulating a cleared cache.
+- Cover disk cache: 56 MiB target plus two downloads of at most 4 MiB each, with a file-count limit including negative-cache markers. Startup removes stale partial downloads. Clearing covers never deletes games or saves.
+- Cover index: streamed gzip filename metadata on IO, at most two concurrent lookups, no retained catalog map, no runtime online index scan. Static side backgrounds use primitive drawing without bitmaps, timers or animation.
+- Save work: at most three outstanding jobs and 1/8 heap capped at 16 MiB of payloads. A full queue rejects new work with a message. Disk writes are serialized away from the UI; flush waits have deadlines.
+- Saves preserve a 64 MiB storage reserve including the new file and prior-state backup. Covers/import keep 200 MiB. Other applications can still consume storage independently.
+- Previous-state CRC validation streams 8 KiB blocks instead of allocating another full state.
+- Native ROM data has one owner until unload. Files, descriptors and buffers are released on failure as well as success. Unknown, negative or oversized input is rejected before allocation; native ROM/state/SRAM is bounded at 32 MiB.
+- The GL thread has normal priority. Per-frame coroutine notifications were removed; aborted startup no longer skips cleanup.
 
-## Пауза и выход
+## Pause and exit
 
-L2 открывает паузу. «Сохранить и выйти из приложения» ожидает запись до 3 секунд, затем закрывает задачу Android; «Выйти в меню» возвращает библиотеку. В библиотеке есть отдельная кнопка «Выход». Принудительное убийство процесса и принудительный сборщик мусора не используются. При медленной записи ранее созданное сохранение остаётся; гарантировать запись последнего момента при принудительном выключении питания нельзя.
+Touchpad click or remote Back opens pause. Save and exit application waits for a save for up to three seconds, then closes the Android task. Save and return to library leaves the player. The library also has an Exit button. No force-kill or forced GC is used. A slow or interrupted write cannot guarantee the latest moment, but the previous valid generation is protected.
 
-Home/переход в другое приложение останавливает эмуляцию и аудио, отменяет периодические задания, освобождает историю и создаёт автосохранение в onStop. Во время паузы, фона и выхода снимается keep-screen-on: системный сон/заставка снова разрешены. Сам экран телевизора приложение не выключает. Android может держать завершённый процесс в кэше и освободить его, когда память понадобится.
+Home/background stops emulation and audio, cancels periodic work, clears history and requests autosave in onStop. Pause/background/exit clear keep-screen-on, allowing system sleep/screensaver. The application does not power off the television. Android can retain a stopped process in cache and reclaim it later.
 
-## Проверки
+## Verification and limits
 
-- Native: 1000 циклов чтения ROM по пути и через дескриптор с передачей владения и освобождением; отсутствующий, пустой, слишком большой ROM; закрытие дескриптора на ошибке. ASan/UBSan, leak sanitizer в CI.
-- JVM: 10 000 снимков истории и освобождение всех миниатюр, отказ 10 000 заданий переполненной очереди, конкурентное резервирование/возврат памяти после ошибки записи, уменьшение бюджетов слабого устройства, сохранение резерва диска, удаление старых изображений и пустых маркеров.
-- Сохраняются тесты звука (144 конфигурации), целостности сохранений, резервных копий и управления.
+Native tests perform 1000 ROM path/descriptor ownership cycles, missing/empty/oversized input checks and error-path descriptor cleanup under sanitizers. JVM checks cover 10000 history entries, preview disposal, 10000 queue rejections, concurrent budget accounting, low-RAM budgets, disk reserves, and cache file eviction. Audio and save-integrity tests remain enabled.
 
-Это проверки компонентов и сборки. Физический телевизор, его прошивка, драйверы и DualSense здесь недоступны. Нельзя обещать абсолютное отсутствие зависаний ядра, драйвера или системы; Java timeout не прерывает зависший native-вызов либо аппаратный ввод-вывод. Ограничения кэша уменьшают нагрузку, но не устанавливают потолок всего RSS процесса и не заменяют измерения на устройстве.
+A physical TV, its firmware, drivers and DualSense are not available in CI. No absolute absence of hangs is claimed. A Java timeout cannot interrupt a stuck native function or blocked hardware IO. Bounds reduce avoidable load but do not replace device measurement.
 
-Проверка на ТВ: час игры с перемоткой; 30 открытий/закрытий NES, SNES, Sega; выход в Home/возврат; отключение контроллера; выход кнопкой приложения. Сравнивать dumpsys meminfo после прогрева и после серии запусков, следить за монотонным ростом, сохранением прогресса и отсутствием звука в фоне. На паузе должна срабатывать системная заставка. Если доступен ADB, onTrimMemory можно проверять командой am send-trim-memory для процесса сборки.
+On TV: play for an hour with rewind; repeat 30 launches/exits across all consoles; test Home/resume, controller disconnect and app Exit. Compare `dumpsys meminfo` after warm-up and repeated launches for sustained growth. Verify saved progress, silent background operation and the screensaver during pause. If ADB is available, `am send-trim-memory` can exercise cleanup.
 
-Preview 1.5.1 использует отдельный пакет com.retrotv.emu.preview.memory и не заменяет ни основную RetroTV, ни предыдущую Preview. Это позволяет проверить исправления без удаления старых игр и сохранений при отличающемся от прежней CI-сборки тестовом ключе подписи.
+Preview 1.6 uses `com.retrotv.emu.preview.console`, separate from older RetroTV previews. It does not erase their games or progress. See README for signing and update constraints.
 
-Официальные источники: [жизненный цикл Activity](https://developer.android.com/guide/components/activities/activity-lifecycle), [память Android](https://developer.android.com/topic/performance/memory-management), [ComponentCallbacks2](https://developer.android.com/reference/android/content/ComponentCallbacks2).
+References: [Activity lifecycle](https://developer.android.com/guide/components/activities/activity-lifecycle), [Android memory](https://developer.android.com/topic/performance/memory-management), [ComponentCallbacks2](https://developer.android.com/reference/android/content/ComponentCallbacks2).

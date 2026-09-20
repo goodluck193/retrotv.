@@ -24,8 +24,7 @@ class MainActivity : AppCompatActivity() {
     private var search = ""
     private var focusedPath: String? = null
     private var refreshJob: Job? = null
-    private var previewJob: Job? = null
-    private val categories = arrayOf("Все игры", "Недавние", "Избранное", "NES / Dendy", "Super Nintendo", "Sega Mega Drive")
+    private val categories get() = arrayOf(getString(R.string.all_games), getString(R.string.recent), getString(R.string.favorites), "NES / Dendy", "Super Nintendo", "Sega Mega Drive")
     private val pickRom = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? -> if (uri != null) importRom(uri) }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState); setContentView(R.layout.activity_main)
@@ -40,7 +39,7 @@ class MainActivity : AppCompatActivity() {
         }
         findViewById<Button>(R.id.btnCategory).apply {
             text = categories[category]
-            setOnClickListener { AlertDialog.Builder(this@MainActivity).setTitle("Библиотека").setSingleChoiceItems(categories, category) { dialog, which ->
+            setOnClickListener { AlertDialog.Builder(this@MainActivity).setTitle(getString(R.string.library)).setSingleChoiceItems(categories, category) { dialog, which ->
                 category = which; text = categories[category]; dialog.dismiss(); filter()
             }.show() }
         }
@@ -49,8 +48,7 @@ class MainActivity : AppCompatActivity() {
     override fun onSaveInstanceState(outState: Bundle) { outState.putInt("category", category); outState.putString("focus", focusedPath); super.onSaveInstanceState(outState) }
     override fun onResume() { super.onResume(); launchingGame = false; recycler.adapter = adapter; refresh() }
     override fun onStop() {
-        refreshJob?.cancel(); previewJob?.cancel()
-        findViewById<ImageView>(R.id.continuePreview).setImageDrawable(null)
+        refreshJob?.cancel()
         adapter.releaseCovers(); recycler.adapter = null; recycler.recycledViewPool.clear()
         CoverArt.clearMemory()
         super.onStop()
@@ -58,8 +56,7 @@ class MainActivity : AppCompatActivity() {
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
         if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) {
-            previewJob?.cancel(); adapter.releaseCovers()
-            findViewById<ImageView>(R.id.continuePreview).setImageDrawable(null)
+            adapter.releaseCovers()
         }
     }
     private fun refresh() {
@@ -67,12 +64,12 @@ class MainActivity : AppCompatActivity() {
         refreshJob = lifecycleScope.launch {
             try {
                 roms = withContext(Dispatchers.IO) { SaveWriter.flush(); RomLibrary.scan(this@MainActivity) }
-                filter(); updateContinue()
+                filter()
                 focusedPath?.let { path ->
                     val index = adapter.positionOf(path)
                     if (index >= 0) { recycler.scrollToPosition(index); recycler.post { recycler.findViewHolderForAdapterPosition(index)?.itemView?.requestFocus() } }
                 }
-            } catch (e: Exception) { if (e is CancellationException) throw e; toast("Ошибка библиотеки: ${e.message}") }
+            } catch (e: Exception) { if (e is CancellationException) throw e; toast(getString(R.string.library_failed, e.userMessage(this@MainActivity))) }
         }
     }
     private fun filter() {
@@ -86,30 +83,15 @@ class MainActivity : AppCompatActivity() {
             else -> list
         }
         adapter.submit(list)
-        findViewById<TextView>(R.id.emptyView).apply { visibility = if (list.isEmpty()) View.VISIBLE else View.GONE; text = if (roms.isEmpty()) getString(R.string.empty_hint) else "Игр не найдено. Измените поиск или категорию." }
-        findViewById<TextView>(R.id.libraryCount).text = "${list.size} игр  •  ✕ открыть  •  Удерживайте ✕ / OK для действий"
-    }
-    private fun updateContinue() {
-        val last = roms.filter { metadata.lastPlayed(it) > 0 && SaveStore(this, it).has(0) }.maxByOrNull { metadata.lastPlayed(it) }
-        val card = findViewById<View>(R.id.continueCard); card.visibility = if (last == null) View.GONE else View.VISIBLE
-        previewJob?.cancel()
-        if (last != null) {
-            findViewById<TextView>(R.id.continueTitle).text = "Продолжить · ${last.title}"
-            findViewById<TextView>(R.id.continueSystem).text = last.system.title
-            card.setOnClickListener { launchGame(last) }
-            val image = findViewById<ImageView>(R.id.continuePreview); image.setImageDrawable(null)
-            previewJob = lifecycleScope.launch {
-                val bitmap = withContext(Dispatchers.IO) { CoverArt.decode(SaveStore(this@MainActivity, last).preview(0)) }
-                image.setImageBitmap(bitmap ?: CoverArt.load(applicationContext, last))
-            }
-        }
+        findViewById<TextView>(R.id.emptyView).apply { visibility = if (list.isEmpty()) View.VISIBLE else View.GONE; text = if (roms.isEmpty()) getString(R.string.empty_hint) else getString(R.string.no_matches) }
+        findViewById<TextView>(R.id.libraryCount).text = getString(R.string.game_count, list.size)
     }
     private fun importRom(uri: Uri) {
         val progress = AlertDialog.Builder(this).setMessage(R.string.importing).setCancelable(false).show()
         lifecycleScope.launch {
             try {
                 when (val result = RomImporter.import(this@MainActivity, uri)) {
-                    is RomImporter.Result.Success -> { focusedPath = result.rom.file.path; toast("Добавлено: ${result.rom.title}"); refresh() }
+                    is RomImporter.Result.Success -> { focusedPath = result.rom.file.path; toast(getString(R.string.game_added, result.rom.title)); refresh() }
                     is RomImporter.Result.Error -> AlertDialog.Builder(this@MainActivity).setTitle(R.string.import_failed).setMessage(result.message).setPositiveButton(android.R.string.ok, null).show()
                 }
             } finally { progress.dismiss() }
@@ -124,11 +106,11 @@ class MainActivity : AppCompatActivity() {
         })
     }
     private fun showActions(rom: Rom) {
-        val favorite = if (metadata.favorite(rom)) "Убрать из избранного" else "В избранное"
-        AlertDialog.Builder(this).setTitle(rom.title).setItems(arrayOf("Продолжить", "Начать заново", favorite, "Удалить игру")) { _, index ->
+        val favorite = if (metadata.favorite(rom)) getString(R.string.unfavorite) else getString(R.string.favorite)
+        AlertDialog.Builder(this).setTitle(rom.title).setItems(arrayOf(getString(R.string.resume), getString(R.string.restart), favorite, getString(R.string.delete_game))) { _, index ->
             when (index) {
                 0 -> launchGame(rom)
-                1 -> AlertDialog.Builder(this).setMessage("Начать заново? Автосохранение будет заменено, ручные слоты останутся.").setPositiveButton("Начать") { _, _ -> launchGame(rom, false) }.setNegativeButton("Отмена", null).show()
+                1 -> AlertDialog.Builder(this).setMessage(getString(R.string.restart_body)).setPositiveButton(getString(R.string.start)) { _, _ -> launchGame(rom, false) }.setNegativeButton(getString(R.string.cancel), null).show()
                 2 -> { metadata.toggleFavorite(rom); filter() }
                 3 -> confirmDelete(rom)
             }
@@ -136,12 +118,12 @@ class MainActivity : AppCompatActivity() {
     }
     private fun confirmDelete(rom: Rom) {
         var keep = true
-        AlertDialog.Builder(this).setTitle("Удалить ${rom.title}?")
-            .setMultiChoiceItems(arrayOf("Оставить сохранения"), booleanArrayOf(true)) { _, _, checked -> keep = checked }
-            .setPositiveButton("Удалить") { _, _ -> lifecycleScope.launch {
+        AlertDialog.Builder(this).setTitle(getString(R.string.delete_game_title, rom.title))
+            .setMultiChoiceItems(arrayOf(getString(R.string.keep_saves)), booleanArrayOf(true)) { _, _, checked -> keep = checked }
+            .setPositiveButton(getString(R.string.delete)) { _, _ -> lifecycleScope.launch {
                 try { withContext(Dispatchers.IO) { RomLibrary.delete(this@MainActivity, rom, keep) }; focusedPath = null; refresh() }
-                catch (e: Exception) { if (e is CancellationException) throw e; toast("Не удалось удалить: ${e.message}") }
-            } }.setNegativeButton("Отмена", null).show()
+                catch (e: Exception) { if (e is CancellationException) throw e; toast(getString(R.string.delete_failed, e.userMessage(this@MainActivity))) }
+            } }.setNegativeButton(getString(R.string.cancel), null).show()
     }
     private fun toast(message: String) = Toast.makeText(this, message, Toast.LENGTH_LONG).show()
 }

@@ -2,22 +2,23 @@ package com.retrotv.emu
 
 import android.content.Context
 
+/** Persistent preferences. Stable keys preserve existing installations. */
 object Prefs {
     private const val NAME = "retrotv_prefs"
 
-    const val FILTER_SHARP = "sharp"      // чёткие пиксели (по умолчанию)
-    const val FILTER_SMOOTH = "smooth"    // сглаживание / апскейл
-    const val FILTER_CRT = "crt"          // имитация кинескопа
-    const val FILTER_LCD = "lcd"          // имитация LCD
+    const val FILTER_SHARP = "sharp"
+    const val FILTER_SMOOTH = "smooth"
+    const val FILTER_CRT = "crt"
+    const val FILTER_LCD = "lcd"
 
     private fun sp(c: Context) = c.getSharedPreferences(NAME, Context.MODE_PRIVATE)
 
-    /** Уровень размытия для фильтра «Сглаживание»: smart / light / medium / strong. */
+
     var Context.smoothLevel: String
-        get() = sp(this).getString("smooth_lvl", "smart") ?: "smart"
+        get() = sp(this).getString("smooth_lvl", "basic") ?: "basic"
         set(v) = sp(this).edit().putString("smooth_lvl", v).apply()
 
-    /** Совместимый OpenSL ES с запасом буфера (false); сокращённая задержка (true). */
+
     var Context.audioLowLatency: Boolean
         get() = sp(this).getBoolean("audio_ll", false)
         set(v) = sp(this).edit().putBoolean("audio_ll", v).apply()
@@ -26,12 +27,12 @@ object Prefs {
         get() = sp(this).getBoolean("covers", true)
         set(v) = sp(this).edit().putBoolean("covers", v).apply()
 
-    /** Высота рендера: 720 (по умолчанию, легче всего для ТВ), 1080 или 0 = родное разрешение. */
+
     var Context.renderHeight: Int
         get() = sp(this).getInt("render_h", 720)
         set(v) = sp(this).edit().putInt("render_h", v).apply()
 
-    /** Перемотка назад на R2. Выключение убирает фоновые снимки состояния. */
+
     var Context.rewindEnabled: Boolean
         get() = sp(this).getBoolean("rewind_on", true)
         set(v) = sp(this).edit().putBoolean("rewind_on", v).apply()
@@ -40,12 +41,16 @@ object Prefs {
         get() = sp(this).getString("filter", FILTER_SHARP) ?: FILTER_SHARP
         set(v) = sp(this).edit().putString("filter", v).apply()
 
-    fun filterTitle(id: String): String = when (id) {
-        FILTER_SMOOTH -> "Сглаживание (апскейл)"
-        FILTER_CRT -> "CRT (кинескоп)"
-        FILTER_LCD -> "LCD"
-        else -> "Чёткие пиксели"
-    }
+    var Context.wallpaper: String
+        get() = sp(this).getString("wallpaper", "black") ?: "black"
+        set(v) = sp(this).edit().putString("wallpaper", v).apply()
+
+    fun filterTitle(c: Context, id: String): String = c.getString(when (id) {
+        FILTER_SMOOTH -> R.string.f_smooth
+        FILTER_CRT -> R.string.f_crt
+        FILTER_LCD -> R.string.f_lcd
+        else -> R.string.f_sharp
+    })
 
     fun nextFilter(id: String): String = when (id) {
         FILTER_SHARP -> FILTER_SMOOTH
