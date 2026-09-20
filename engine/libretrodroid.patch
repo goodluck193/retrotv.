@@ -1,0 +1,133 @@
+diff --git a/libretrodroid/src/main/cpp/libretrodroid.cpp b/libretrodroid/src/main/cpp/libretrodroid.cpp
+index 60640c4..49b2089 100644
+--- a/libretrodroid/src/main/cpp/libretrodroid.cpp
++++ b/libretrodroid/src/main/cpp/libretrodroid.cpp
+@@ -453,7 +453,7 @@ void LibretroDroid::step() {
+         unsigned requestedFrames = fpsSync->advanceFrames();
+ 
+         // If the application runs too slow it's better to just skip those frames.
+-        frames = std::min(requestedFrames, 2u);
++        frames = std::min(requestedFrames, 4u);
+     }
+ 
+     for (size_t i = 0; i < frames * frameSpeed; i++)
+@@ -490,6 +490,11 @@ void LibretroDroid::step() {
+     }
+ }
+ 
++std::string LibretroDroid::audioDiagnostics() {
++    std::lock_guard<std::mutex> lock(coreLock);
++    return audio ? audio->diagnostics() : "Audio is not ready";
++}
++
+ float LibretroDroid::getAspectRatio() {
+     float gameAspectRatio = Environment::getInstance().retrieveGameSpecificAspectRatio();
+     return gameAspectRatio > 0 ? gameAspectRatio : defaultAspectRatio;
+@@ -576,7 +581,10 @@ std::pair<int8_t*, size_t> LibretroDroid::serializeState() {
+     size_t size = core->retro_serialize_size();
+     auto data = new int8_t[size];
+ 
+-    core->retro_serialize(data, size);
++    if (size == 0 || !core->retro_serialize(data, size)) {
++        delete[] data;
++        throw std::runtime_error("Core rejected state serialization");
++    }
+ 
+     return std::pair(data, size);
+ }
+diff --git a/libretrodroid/src/main/cpp/libretrodroid.h b/libretrodroid/src/main/cpp/libretrodroid.h
+index b507aee..200be47 100644
+--- a/libretrodroid/src/main/cpp/libretrodroid.h
++++ b/libretrodroid/src/main/cpp/libretrodroid.h
+@@ -107,6 +107,7 @@ public:
+     void onTouchEvent(float xAxis, float yAxis);
+ 
+     void refreshAspectRatio();
++    std::string audioDiagnostics();
+     float getAspectRatio();
+ 
+     bool requiresVideoRefresh() const;
+diff --git a/libretrodroid/src/main/cpp/libretrodroidjni.cpp b/libretrodroid/src/main/cpp/libretrodroidjni.cpp
+index 2ec15cf..076ae56 100644
+--- a/libretrodroid/src/main/cpp/libretrodroidjni.cpp
++++ b/libretrodroid/src/main/cpp/libretrodroidjni.cpp
+@@ -54,6 +54,11 @@ extern "C" {
+ 
+ extern "C" {
+ 
++JNIEXPORT jstring JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_audioDiagnostics(JNIEnv* env, jclass) {
++    const auto value = LibretroDroid::getInstance().audioDiagnostics();
++    return env->NewStringUTF(value.c_str());
++}
++
+ JNIEXPORT jint JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_availableDisks(
+     JNIEnv* env,
+     jclass obj
+@@ -198,8 +203,9 @@ JNIEXPORT jbyteArray JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_seri
+     try {
+         auto [data, size] = LibretroDroid::getInstance().serializeState();
+ 
++        std::unique_ptr<int8_t[]> owned(data);
+         jbyteArray result = env->NewByteArray(size);
+-        env->SetByteArrayRegion(result, 0, size, data);
++        if (result && size) env->SetByteArrayRegion(result, 0, size, data);
+ 
+         return result;
+ 
+@@ -269,6 +275,7 @@ JNIEXPORT jbyteArray JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_seri
+     try {
+         auto [data, size] = LibretroDroid::getInstance().serializeSRAM();
+ 
++        std::unique_ptr<int8_t[]> owned(data);
+         jbyteArray result = env->NewByteArray(size);
+         env->SetByteArrayRegion(result, 0, size, (jbyte *) data);
+ 
+diff --git a/libretrodroid/src/main/java/com/swordfish/libretrodroid/GLRetroView.kt b/libretrodroid/src/main/java/com/swordfish/libretrodroid/GLRetroView.kt
+index 7eb8602..81bb218 100644
+--- a/libretrodroid/src/main/java/com/swordfish/libretrodroid/GLRetroView.kt
++++ b/libretrodroid/src/main/java/com/swordfish/libretrodroid/GLRetroView.kt
+@@ -40,6 +40,8 @@ import kotlinx.coroutines.flow.MutableSharedFlow
+ import kotlinx.coroutines.launch
+ import java.util.Locale
+ import java.util.concurrent.CountDownLatch
++import java.util.concurrent.TimeUnit
++import java.util.concurrent.atomic.AtomicBoolean
+ import javax.microedition.khronos.egl.EGLConfig
+ import javax.microedition.khronos.opengles.GL10
+ import kotlin.properties.Delegates
+@@ -397,14 +399,17 @@ class GLRetroView(
+         }
+ 
+         val latch = CountDownLatch(1)
+-        var result: T? = null
++        var result: Result<T>? = null
++        val cancelled = AtomicBoolean(false)
+         queueEvent {
+-            result = block()
+-            latch.countDown()
++            try { if (!cancelled.get()) result = runCatching(block) }
++            finally { latch.countDown() }
+         }
+-
+-        latch.awaitUninterruptibly()
+-        return result!!
++        if (!latch.await(2, TimeUnit.SECONDS)) {
++            cancelled.set(true)
++            throw IllegalStateException("Emulation thread did not respond")
++        }
++        return result!!.getOrThrow()
+     }
+ 
+     private fun buildShader(config: ShaderConfig): GLRetroShader {
+diff --git a/libretrodroid/src/main/java/com/swordfish/libretrodroid/LibretroDroid.java b/libretrodroid/src/main/java/com/swordfish/libretrodroid/LibretroDroid.java
+index 50eafa1..f0db1f9 100644
+--- a/libretrodroid/src/main/java/com/swordfish/libretrodroid/LibretroDroid.java
++++ b/libretrodroid/src/main/java/com/swordfish/libretrodroid/LibretroDroid.java
+@@ -98,6 +98,7 @@ public class LibretroDroid {
+     public static native void loadGameFromBytes(byte[] gameFileBytes);
+     public static native void loadGameFromVirtualFiles(List<DetachedVirtualFile> virtualFiles);
+     public static native void resume();
++    public static native String audioDiagnostics();
+ 
+     public static native void onSurfaceCreated();
+     public static native void onSurfaceChanged(int width, int height);

@@ -1,36 +1,45 @@
 name: Build RetroTV APK
-
 on:
   push:
   workflow_dispatch:
-
+permissions:
+  contents: read
+concurrency:
+  group: retrotv-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     steps:
-      - name: Получить исходники
-        uses: actions/checkout@v4
-
-      - name: Установить Java 17
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
-      - name: Скачать ядра эмуляции (libretro buildbot)
-        run: bash scripts/download_cores.sh
-
-      - name: Установить Gradle
-        uses: gradle/actions/setup-gradle@v3
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
-
-      - name: Собрать APK
-        run: gradle assembleDebug --no-daemon
-
-      - name: Выложить готовый APK
-        uses: actions/upload-artifact@v4
+      - name: Android tools
+        run: sdkmanager 'platforms;android-34' 'build-tools;34.0.0' 'ndk;26.3.11579264' 'cmake;3.22.1'
+      - name: Audio tests
+        run: |
+          g++ -std=c++17 -O2 -pthread -fsanitize=address,undefined -fno-omit-frame-pointer native/audio_test.cpp -o /tmp/audio-test
+          /tmp/audio-test
+      - name: Prepare engine and cores
+        run: |
+          python3 scripts/prepare_engine.py
+          bash scripts/download_cores.sh
+      - name: Test and build
+        run: gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon --max-workers=2
+      - uses: actions/upload-artifact@v4
         with:
-          name: RetroTV-apk
+          name: RetroTV-1.5-debug
           path: app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 30
+          retention-days: 90
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: RetroTV-test-results
+          path: app/build/reports/tests/
