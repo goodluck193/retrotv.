@@ -6,6 +6,9 @@ import android.graphics.BitmapFactory
 import android.util.LruCache
 import com.retrotv.emu.Prefs.downloadCovers
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
@@ -16,10 +19,12 @@ import java.net.URLEncoder
 
 object CoverArt {
     private val requests = Semaphore(2)
+    private val locks = ConcurrentHashMap<String, Mutex>()
     private val cache = object : LruCache<String, Bitmap>(12 * 1024 * 1024) { override fun sizeOf(key: String, value: Bitmap) = value.byteCount }
     suspend fun load(context: Context, rom: Rom): Bitmap? = withContext(Dispatchers.IO) {
         cache.get(rom.id)?.let { return@withContext it }
-        requests.withPermit {
+        locks.getOrPut(rom.id) { Mutex() }.withLock {
+            cache.get(rom.id) ?: requests.withPermit {
             val folder = File(context.filesDir, "covers").apply { mkdirs() }
             val file = File(folder, rom.id + ".png"); val missing = File(folder, rom.id + ".missing")
             if (!file.exists() && context.downloadCovers && (!missing.exists() || System.currentTimeMillis() - missing.lastModified() > 86_400_000)) {
@@ -35,6 +40,7 @@ object CoverArt {
                 runCatching { if (!file.exists()) missing.writeText("") else missing.delete() }
             }
             decode(file)?.also { cache.put(rom.id, it) }
+            }
         }
     }
     private fun decode(file: File): Bitmap? {

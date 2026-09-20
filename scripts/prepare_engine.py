@@ -14,7 +14,7 @@ def run(*args, cwd=ENGINE):
 if not ENGINE.exists():
     run('git', 'clone', '--no-checkout', 'https://github.com/Swordfish90/LibretroDroid.git', str(ENGINE), cwd=ROOT)
 head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ENGINE, text=True).strip()
-if head != REVISION:
+if head != REVISION or not (ENGINE / '.git/index').exists():
     run('git', 'checkout', '--detach', REVISION)
 run('git', 'submodule', 'update', '--init', '--depth', '1')
 patch = ROOT / 'engine' / 'libretrodroid.patch'
