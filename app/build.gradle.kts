@@ -40,8 +40,7 @@ android {
 }
 
 dependencies {
-    // Эмуляционное ядро-обвязка (libretro для Android). При проблемах со сборкой
-    // проверьте актуальный тег на https://github.com/Swordfish90/LibretroDroid/releases
+    // Pinned engine source with reviewed RetroTV audio and JNI patches.
     implementation(project(":emulation"))
 
     implementation("androidx.core:core-ktx:1.13.1")

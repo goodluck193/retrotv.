@@ -8,3 +8,6 @@ local.properties
 *.keystore
 .cores/
 app/src/main/jniLibs/**/*.so
+app/src/main/assets/licenses/fceumm/
+app/src/main/assets/licenses/snes9x/
+app/src/main/assets/licenses/genesis/

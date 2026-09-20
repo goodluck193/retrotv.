@@ -19,7 +19,7 @@ static void playback(int rate, double fps, double displayFps, int callback) {
     std::vector<int16_t> in, out(callback * 2);
     uint64_t generated = 0;
     double nextVideo = 0, sampleRemainder = 0;
-    int rendered = 0;
+    int rendered = 0, previous = 0, peak = 0, crossings = 0;
     for (double t = 0; t < 15; t += double(callback) / 48000) {
         while (nextVideo <= t) {
             auto frames = clock.advance(int64_t(nextVideo * 1e9));
@@ -34,9 +34,17 @@ static void playback(int rate, double fps, double displayFps, int callback) {
             nextVideo += (rendered % 113 == 0 ? 2.0 : 1.0) / displayFps;
         }
         buffer.render(out.data(), callback, 48000);
-        for (int i = 0; i < callback; ++i) assert(std::abs(int(out[i*2]) + int(out[i*2+1])) <= 1);
+        for (int i = 0; i < callback; ++i) {
+            const int sample = out[i * 2];
+            assert(std::abs(sample + int(out[i * 2 + 1])) <= 1);
+            assert(std::abs(sample - previous) < 1000); // continuity across callback boundaries
+            if (previous <= 0 && sample > 0) ++crossings;
+            peak = std::max(peak, std::abs(sample)); previous = sample;
+        }
     }
     if (buffer.underruns()) std::cerr << "Underrun: " << rate << " / " << fps << " / " << displayFps << " / " << callback << " = " << buffer.underruns() << "\n";
+    assert(peak > 10000);
+    assert(std::abs(crossings / 14.9 - 440.0) < 5.0);
     assert(buffer.underruns() == 0);
     assert(buffer.dropped() == 0);
     assert(std::abs(double(generated) / rate - 15) < 0.12);

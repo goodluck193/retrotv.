@@ -50,6 +50,8 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
     private var rewindLabel: TextView? = null
     private var rewindIndex = 0
     private var rewindJob: Job? = null
+    private var rewindOrigin: ByteArray? = null
+    private var restoreJob: Job? = null
     private var rewinding = false
     private var rewindStep = 500L
     private var playTime = 0L
@@ -244,6 +246,7 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
     }
     private fun clearHistory() { generation++; history.clear(); lastSnapshot = playTime; lastAuto = playTime }
     private fun chooseSlot(saving: Boolean) {
+        if (protectingSave) return
         val slots = if (saving) (1..3).toList() else (0..3).toList()
         val labels = slots.map { slot ->
             val date = if (saves.has(slot)) DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(saves.timestamp(slot))) else "пусто"
@@ -268,6 +271,7 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         }.setNegativeButton("Отмена", null).show()
     }
     private fun saveManual(slot: Int) {
+        if (protectingSave) return
         try {
             val state = retroView!!.serializeState(false); val ram = retroView!!.serializeSRAM(false); val target = saves
             val job = SaveWriter.submit(applicationContext) { target.write(slot, state); target.writeRam(ram) }
@@ -276,9 +280,12 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         } catch (e: Exception) { toast("Не удалось сохранить: ${e.message}") }
     }
     private fun restore(slot: Int, initial: Boolean = false) {
+        if (restoreJob?.isActive == true) return
         pausePlayer(); protectingSave = true
-        lifecycleScope.launch {
+        restoreJob = lifecycleScope.launch {
+            var rollback: ByteArray? = null
             try {
+                rollback = retroView!!.serializeState(false)
                 val state = withContext(Dispatchers.IO) { SaveWriter.flush(); saves.read(slot) }
                 check(retroView!!.unserializeState(state.bytes, false)) { "Ядро отклонило сохранение" }
                 clearHistory(); protectingSave = false
@@ -286,9 +293,11 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
                 if (!menuShowing) { resumePlayer(); if (initial) showHint() }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
+                val restored = rollback?.let { runCatching { retroView!!.unserializeState(it, false) }.getOrDefault(false) } ?: false
                 AlertDialog.Builder(this@GameActivity).setTitle("Не удалось восстановить игру")
                     .setMessage("${e.message}\nСохранение оставлено без изменений.").setCancelable(false)
-                    .setPositiveButton(if (initial) "Начать заново" else "Продолжить") { _, _ ->
+                    .setPositiveButton(if (initial || !restored) "Начать заново" else "Продолжить") { _, _ ->
+                        if (!restored) LibretroDroid.reset()
                         protectingSave = false; if (!menuShowing) resumePlayer()
                     }.setNegativeButton("В библиотеку") { _, _ -> finish() }.show()
             }
@@ -298,7 +307,10 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
     private fun beginRewind() {
         if (!rewindEnabled || protectingSave || menuShowing || rewinding) return
         if (history.size == 0) { toast("История ещё накапливается"); return }
-        pausePlayer(); rewinding = true; generation++
+        pausePlayer()
+        try { rewindOrigin = retroView!!.serializeState(false) }
+        catch (_: Exception) { toast("Не удалось начать перемотку"); resumePlayer(); return }
+        rewinding = true; generation++
         rewindIndex = history.size - 1
         rewindOverlay = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER
@@ -336,9 +348,14 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
                 check(retroView!!.unserializeState(chosen.state, false))
                 playTime = chosen.timeMs; lastAuto = playTime; lastSnapshot = playTime
                 history.discardAfter(rewindIndex)
-            } catch (_: Exception) { toast("Не удалось восстановить этот момент") }
+            } catch (_: Exception) {
+                val restored = rewindOrigin?.let { runCatching { retroView!!.unserializeState(it, false) }.getOrDefault(false) } ?: false
+                if (!restored) { protectingSave = true; finish() }
+                toast("Не удалось восстановить этот момент")
+            }
         }
-        if (resume) resumePlayer()
+        rewindOrigin = null
+        if (resume && !protectingSave) resumePlayer()
     }
     private fun triggerR2(key: Boolean? = null, axis: Boolean? = null) {
         val before = r2Key || r2Axis

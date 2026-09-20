@@ -23,4 +23,11 @@ for core in json.loads((ROOT / 'engine/cores.lock.json').read_text()):
         dest = ROOT / 'app/src/main/jniLibs' / abi / core['library']
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(build.parent / 'libs' / abi / 'libretro.so', dest)
+    licenses = ROOT / 'app/src/main/assets/licenses' / core['name']
+    licenses.mkdir(parents=True, exist_ok=True)
+    for pattern in ('*LICENSE*', '*COPYING*', '*license*'):
+        for file in source.rglob(pattern):
+            if file.is_file() and '.git' not in file.parts:
+                target = licenses / str(file.relative_to(source)).replace('/', '_')
+                shutil.copyfile(file, target)
     print('Built', core['name'], core['revision'], flush=True)
