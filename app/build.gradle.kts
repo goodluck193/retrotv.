@@ -45,6 +45,8 @@ android {
     }
 
     packaging {
+        // JVM debug-agent replacement bytecode is unused by Android TV.
+        resources.excludes += "DebugProbesKt.bin"
         jniLibs {
             // Cores must be extracted for dlopen on all supported API levels.
             useLegacyPackaging = true

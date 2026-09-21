@@ -32,7 +32,8 @@ def main():
             rows.append((normalize(title), path))
         rows.sort(key=lambda x: (x[0], ('Named_Boxarts','Named_Titles','Named_Snaps').index(x[1].split('/')[0]), 0 if 'USA' in x[1] else 1 if 'World' in x[1] else 2 if 'Europe' in x[1] else 3, x[1]))
         data = ''.join(f'{key}\t{path}\n' for key,path in rows).encode()
-        (folder / f'{system}.tsv.gz').write_bytes(gzip.compress(data, mtime=0))
+        # AAPT treats a .gz asset suffix specially; .idx preserves the gzip stream and name.
+        (folder / f'{system}.idx').write_bytes(gzip.compress(data, mtime=0))
         sources.append({'system':system,'repository':f'https://github.com/libretro-thumbnails/{repo}','tree':tree['sha'],'entries':len(rows)})
         print(system, len(rows), len(data), flush=True)
     (ROOT / 'engine/cover-sources.json').write_text(json.dumps(sources, indent=2)+'\n')

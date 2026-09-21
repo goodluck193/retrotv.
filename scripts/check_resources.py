@@ -24,12 +24,12 @@ for path in (RES / 'layout').glob('*.xml'):
     for key in re.findall(r'@string/(\w+)', path.read_text()): assert key in base, (path, key)
     assert not re.search('[А-Яа-яЁё]', path.read_text()), path
 index = ROOT / 'app/src/main/assets/cover-index'
-for path in index.glob('*.gz'):
+for path in index.glob('*.idx'):
     with gzip.open(path, 'rt') as stream:
         for line in stream:
             key, name = line.rstrip('\n').split('\t')
             assert name.startswith(('Named_Boxarts/', 'Named_Titles/', 'Named_Snaps/')) and name.endswith('.png')
             assert '..' not in name.split('/'), name
-with gzip.open(index / 'megadrive.tsv.gz', 'rt') as stream:
+with gzip.open(index / 'megadrive.idx', 'rt') as stream:
     assert any(line.startswith('desert demolition starring road runner and wile e coyote\tNamed_Boxarts/') for line in stream)
 print(f'{len(LOCALES)} complete locales × {len(base)} strings; XML, format arguments and cover metadata passed')

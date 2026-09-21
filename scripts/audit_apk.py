@@ -11,7 +11,7 @@ with zipfile.ZipFile(apk) as archive:
         raw = archive.read(name)
         if name.startswith('assets/licenses/'):
             assert len(raw) < 512 * 1024 and b'\x00' not in raw, f'Non-text license: {name}'
-        elif name in ('assets/cover-index/nes.tsv.gz', 'assets/cover-index/snes.tsv.gz', 'assets/cover-index/megadrive.tsv.gz'):
+        elif name in ('assets/cover-index/nes.idx', 'assets/cover-index/snes.idx', 'assets/cover-index/megadrive.idx'):
             text = gzip.decompress(raw).decode('utf-8')
             assert len(text) < 8 * 1024 * 1024
             for line in text.splitlines():

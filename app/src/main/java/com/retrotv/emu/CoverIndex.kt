@@ -13,7 +13,7 @@ object CoverIndex {
         val result = mutableListOf<String>()
         val name = if (rom.system == SystemType.MEGADRIVE) "megadrive" else rom.system.id
         val coroutine = currentCoroutineContext()
-        GZIPInputStream(context.assets.open("cover-index/$name.tsv.gz")).bufferedReader().use { reader ->
+        GZIPInputStream(context.assets.open("cover-index/$name.idx")).bufferedReader().use { reader ->
             var lines = 0
             while (true) {
                 val line = reader.readLine() ?: break
