@@ -1,36 +1,79 @@
-name: Build RetroTV APK
-
+name: Build Retro Console APK
 on:
   push:
   workflow_dispatch:
-
+permissions:
+  contents: read
+concurrency:
+  group: retrotv-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     steps:
-      - name: Получить исходники
-        uses: actions/checkout@v4
-
-      - name: Установить Java 17
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
-      - name: Скачать ядра эмуляции (libretro buildbot)
-        run: bash scripts/download_cores.sh
-
-      - name: Установить Gradle
-        uses: gradle/actions/setup-gradle@v3
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
-
-      - name: Собрать APK
-        run: gradle assembleDebug --no-daemon
-
-      - name: Выложить готовый APK
-        uses: actions/upload-artifact@v4
+      - name: Android tools
+        run: sdkmanager 'platforms;android-34' 'build-tools;34.0.0' 'ndk;26.3.11579264' 'cmake;3.22.1'
+      - name: Localization and asset checks
+        run: python3 scripts/check_resources.py
+      - name: Audio tests
+        run: |
+          g++ -std=c++17 -O2 -pthread -fsanitize=address,undefined -fno-omit-frame-pointer native/audio_test.cpp -o /tmp/audio-test
+          /tmp/audio-test
+      - name: Prepare engine
+        run: python3 scripts/prepare_engine.py
+      - name: Native resource tests
+        run: |
+          g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer native/resource_test.cpp .engine/libretrodroid/src/main/cpp/utils/utils.cpp -I.engine/libretrodroid/src/main/cpp -o /tmp/resource-test
+          /tmp/resource-test
+      - uses: actions/cache/restore@v4
+        id: cores-cache
         with:
-          name: RetroTV-apk
+          key: ${{ runner.os }}-cores-ndk26.3-${{ hashFiles('engine/cores.lock.json', 'scripts/build_cores.py') }}
+          path: |
+            app/src/main/jniLibs
+            app/src/main/assets/licenses/fceumm
+            app/src/main/assets/licenses/snes9x
+            app/src/main/assets/licenses/genesis
+      - name: Build pinned cores
+        if: steps.cores-cache.outputs.cache-hit != 'true'
+        run: python3 scripts/build_cores.py
+      - uses: actions/cache/save@v4
+        if: steps.cores-cache.outputs.cache-hit != 'true'
+        with:
+          key: ${{ steps.cores-cache.outputs.cache-primary-key }}
+          path: |
+            app/src/main/jniLibs
+            app/src/main/assets/licenses/fceumm
+            app/src/main/assets/licenses/snes9x
+            app/src/main/assets/licenses/genesis
+      - name: Test and build
+        run: ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:assemblePreview --no-daemon --max-workers=2
+      - name: Audit packaged content
+        run: python3 scripts/audit_apk.py app/build/outputs/apk/preview/app-preview.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RetroConsole-1.6.1-debug
           path: app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 30
+          retention-days: 90
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RetroConsole-1.6.1-preview
+          path: app/build/outputs/apk/preview/app-preview.apk
+          retention-days: 90
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: RetroConsole-test-results
+          path: app/build/reports/tests/

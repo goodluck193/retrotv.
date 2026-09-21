@@ -1,0 +1,539 @@
+diff --git a/libretrodroid/src/main/cpp/libretrodroid.cpp b/libretrodroid/src/main/cpp/libretrodroid.cpp
+index 60640c4..889bf46 100644
+--- a/libretrodroid/src/main/cpp/libretrodroid.cpp
++++ b/libretrodroid/src/main/cpp/libretrodroid.cpp
+@@ -147,12 +147,13 @@ void LibretroDroid::setControllerType(unsigned int port, unsigned int type) {
+ bool LibretroDroid::unserializeState(int8_t *data, size_t size) {
+     std::lock_guard<std::mutex> lock(coreLock);
+ 
+-    return core->retro_unserialize(data, size);
++    return core && core->retro_unserialize(data, size);
+ }
+ 
+ JNIEXPORT jboolean JNICALL LibretroDroid::unserializeSRAM(int8_t* data, size_t size) {
+     std::lock_guard<std::mutex> lock(coreLock);
+ 
++    if (!core) return false;
+     size_t sramSize = core->retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
+     void *sramState = core->retro_get_memory_data(RETRO_MEMORY_SAVE_RAM);
+ 
+@@ -174,9 +175,13 @@ JNIEXPORT jboolean JNICALL LibretroDroid::unserializeSRAM(int8_t* data, size_t s
+ std::pair<int8_t*, size_t> LibretroDroid::serializeSRAM() {
+     std::lock_guard<std::mutex> lock(coreLock);
+ 
++    if (!core) throw std::runtime_error("Core is not ready");
+     size_t size = core->retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
++    void* source = core->retro_get_memory_data(RETRO_MEMORY_SAVE_RAM);
++    if (!source || size == 0) return {nullptr, 0};
++    if (size > 32 * 1024 * 1024) throw std::runtime_error("SRAM exceeds memory limit");
+     auto* data = new int8_t[size];
+-    memcpy(data, (int8_t*) core->retro_get_memory_data(RETRO_MEMORY_SAVE_RAM), size);
++    memcpy(data, source, size);
+ 
+     return std::pair(data, size);
+ }
+@@ -267,6 +272,7 @@ void LibretroDroid::create(
+ ) {
+     LOGD("Performing libretrodroid create");
+ 
++    destroy();
+     resetGlobalVariables();
+ 
+     Environment::getInstance().initialize(systemDir, savesDir, &callback_get_current_framebuffer);
+@@ -296,6 +302,7 @@ void LibretroDroid::create(
+     });
+ 
+     core->retro_init();
++    coreInitialized = true;
+ 
+     preferLowLatencyAudio = lowLatencyAudio;
+ 
+@@ -315,7 +322,8 @@ void LibretroDroid::loadGameFromPath(const std::string& gamePath) {
+     core->retro_get_system_info(&system_info);
+ 
+     struct retro_game_info game_info {};
+-    game_info.path = Utils::cloneToCString(gamePath);
++    loadedGamePath = gamePath;
++    game_info.path = loadedGamePath.c_str();
+     game_info.meta = nullptr;
+ 
+     if (system_info.need_fullpath) {
+@@ -323,7 +331,8 @@ void LibretroDroid::loadGameFromPath(const std::string& gamePath) {
+         game_info.size = 0;
+     } else {
+         struct Utils::ReadResult file = Utils::readFileAsBytes(gamePath);
+-        game_info.data = file.data;
++        loadedGameData = std::move(file.data);
++        game_info.data = loadedGameData.get();
+         game_info.size = file.size;
+     }
+ 
+@@ -333,6 +342,7 @@ void LibretroDroid::loadGameFromPath(const std::string& gamePath) {
+         throw std::runtime_error("Cannot load game");
+     }
+ 
++    gameLoaded = true;
+     afterGameLoad();
+ }
+ 
+@@ -350,7 +360,10 @@ void LibretroDroid::loadGameFromBytes(const int8_t *data, size_t size) {
+         game_info.data = nullptr;
+         game_info.size = 0;
+     } else {
+-        game_info.data = data;
++        if (size == 0 || size > 32 * 1024 * 1024) throw std::runtime_error("ROM exceeds memory limit");
++        loadedGameData = std::make_unique<char[]>(size);
++        memcpy(loadedGameData.get(), data, size);
++        game_info.data = loadedGameData.get();
+         game_info.size = size;
+     }
+ 
+@@ -360,6 +373,7 @@ void LibretroDroid::loadGameFromBytes(const int8_t *data, size_t size) {
+         throw std::runtime_error("Cannot load game");
+     }
+ 
++    gameLoaded = true;
+     afterGameLoad();
+ }
+ 
+@@ -379,7 +393,8 @@ void LibretroDroid::loadGameFromVirtualFiles(std::vector<VFSFile> virtualFiles)
+     bool loadUsingVFS = system_info.need_fullpath || virtualFiles.size() > 1;
+ 
+     struct retro_game_info game_info {};
+-    game_info.path = Utils::cloneToCString(firstFilePath);
++    loadedGamePath = firstFilePath;
++    game_info.path = loadedGamePath.c_str();
+     game_info.meta = nullptr;
+ 
+     if (loadUsingVFS) {
+@@ -391,7 +406,8 @@ void LibretroDroid::loadGameFromVirtualFiles(std::vector<VFSFile> virtualFiles)
+         game_info.size = 0;
+     } else {
+         struct Utils::ReadResult file = Utils::readFileAsBytes(firstFileFD);
+-        game_info.data = file.data;
++        loadedGameData = std::move(file.data);
++        game_info.data = loadedGameData.get();
+         game_info.size = file.size;
+     }
+ 
+@@ -401,6 +417,7 @@ void LibretroDroid::loadGameFromVirtualFiles(std::vector<VFSFile> virtualFiles)
+         throw std::runtime_error("Cannot load game");
+     }
+ 
++    gameLoaded = true;
+     afterGameLoad();
+ }
+ 
+@@ -408,26 +425,32 @@ void LibretroDroid::destroy() {
+     std::lock_guard<std::mutex> lock(coreLock);
+ 
+     LOGD("Performing libretrodroid destroy");
+-
+-    if (Environment::getInstance().getHwContextDestroy() != nullptr) {
+-        Environment::getInstance().getHwContextDestroy()();
++    // Stop the callback before unloading the core and its backing ROM bytes.
++    audio = nullptr;
++    if (core && gameLoaded) {
++        if (Environment::getInstance().getHwContextDestroy() != nullptr) {
++            Environment::getInstance().getHwContextDestroy()();
++        }
++        core->retro_unload_game();
+     }
+-
+-    core->retro_unload_game();
+-    core->retro_deinit();
+-
++    if (core && coreInitialized) core->retro_deinit();
++    gameLoaded = false;
++    coreInitialized = false;
+     video = nullptr;
+     core = nullptr;
++    input = nullptr;
+     rumble = nullptr;
+     fpsSync = nullptr;
+-    audio = nullptr;
+-
++    loadedGameData.reset();
++    std::string().swap(loadedGamePath);
+     Environment::getInstance().deinitialize();
+     VFS::getInstance().deinitialize();
+ }
+ 
+ void LibretroDroid::resume() {
++    std::lock_guard<std::mutex> lock(coreLock);
+     LOGD("Performing libretrodroid resume");
++    if (!fpsSync || !audio || !video) return;
+ 
+     input = std::make_unique<Input>();
+ 
+@@ -437,8 +460,9 @@ void LibretroDroid::resume() {
+ }
+ 
+ void LibretroDroid::pause() {
++    std::lock_guard<std::mutex> lock(coreLock);
+     LOGD("Performing libretrodroid pause");
+-    audio->stop();
++    if (audio) audio->stop();
+ 
+     input = nullptr;
+ }
+@@ -453,7 +477,7 @@ void LibretroDroid::step() {
+         unsigned requestedFrames = fpsSync->advanceFrames();
+ 
+         // If the application runs too slow it's better to just skip those frames.
+-        frames = std::min(requestedFrames, 2u);
++        frames = std::min(requestedFrames, 4u);
+     }
+ 
+     for (size_t i = 0; i < frames * frameSpeed; i++)
+@@ -490,6 +514,16 @@ void LibretroDroid::step() {
+     }
+ }
+ 
++float LibretroDroid::displayAspectRatio() {
++    std::lock_guard<std::mutex> lock(coreLock);
++    return getAspectRatio();
++}
++
++std::string LibretroDroid::audioDiagnostics() {
++    std::lock_guard<std::mutex> lock(coreLock);
++    return audio ? audio->diagnostics() : "Audio is not ready";
++}
++
+ float LibretroDroid::getAspectRatio() {
+     float gameAspectRatio = Environment::getInstance().retrieveGameSpecificAspectRatio();
+     return gameAspectRatio > 0 ? gameAspectRatio : defaultAspectRatio;
+@@ -573,12 +607,16 @@ void LibretroDroid::reset() {
+ std::pair<int8_t*, size_t> LibretroDroid::serializeState() {
+     std::lock_guard<std::mutex> lock(coreLock);
+ 
++    if (!core) throw std::runtime_error("Core is not ready");
+     size_t size = core->retro_serialize_size();
+-    auto data = new int8_t[size];
++    if (size == 0 || size > 32 * 1024 * 1024) throw std::runtime_error("State exceeds memory limit");
++    auto data = std::make_unique<int8_t[]>(size);
+ 
+-    core->retro_serialize(data, size);
++    if (!core->retro_serialize(data.get(), size)) {
++        throw std::runtime_error("Core rejected state serialization");
++    }
+ 
+-    return std::pair(data, size);
++    return std::pair(data.release(), size);
+ }
+ 
+ void LibretroDroid::resetCheat() {
+@@ -590,7 +628,7 @@ void LibretroDroid::resetCheat() {
+ void LibretroDroid::setCheat(unsigned index, bool enabled, const std::string& code) {
+     std::lock_guard<std::mutex> lock(coreLock);
+ 
+-    core->retro_cheat_set(index, enabled, Utils::cloneToCString(code));
++    core->retro_cheat_set(index, enabled, code.c_str());
+ }
+ 
+ bool LibretroDroid::requiresVideoRefresh() const {
+diff --git a/libretrodroid/src/main/cpp/libretrodroid.h b/libretrodroid/src/main/cpp/libretrodroid.h
+index b507aee..daf8a67 100644
+--- a/libretrodroid/src/main/cpp/libretrodroid.h
++++ b/libretrodroid/src/main/cpp/libretrodroid.h
+@@ -107,7 +107,9 @@ public:
+     void onTouchEvent(float xAxis, float yAxis);
+ 
+     void refreshAspectRatio();
++    std::string audioDiagnostics();
+     float getAspectRatio();
++    float displayAspectRatio();
+ 
+     bool requiresVideoRefresh() const;
+     void clearRequiresVideoRefresh();
+@@ -177,6 +179,11 @@ private:
+     bool dirtyVideo = false;
+ 
+     std::mutex coreLock;
++    // libretro permits the core to retain pointers until retro_unload_game.
++    std::unique_ptr<char[]> loadedGameData;
++    std::string loadedGamePath;
++    bool gameLoaded = false;
++    bool coreInitialized = false;
+ 
+     std::unique_ptr<Core> core;
+     std::unique_ptr<Audio> audio;
+diff --git a/libretrodroid/src/main/cpp/libretrodroidjni.cpp b/libretrodroid/src/main/cpp/libretrodroidjni.cpp
+index 2ec15cf..a75c6b0 100644
+--- a/libretrodroid/src/main/cpp/libretrodroidjni.cpp
++++ b/libretrodroid/src/main/cpp/libretrodroidjni.cpp
+@@ -54,6 +54,15 @@ extern "C" {
+ 
+ extern "C" {
+ 
++JNIEXPORT jfloat JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_getAspectRatio(JNIEnv*, jclass) {
++    return LibretroDroid::getInstance().displayAspectRatio();
++}
++
++JNIEXPORT jstring JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_audioDiagnostics(JNIEnv* env, jclass) {
++    const auto value = LibretroDroid::getInstance().audioDiagnostics();
++    return env->NewStringUTF(value.c_str());
++}
++
+ JNIEXPORT jint JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_availableDisks(
+     JNIEnv* env,
+     jclass obj
+@@ -198,8 +207,9 @@ JNIEXPORT jbyteArray JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_seri
+     try {
+         auto [data, size] = LibretroDroid::getInstance().serializeState();
+ 
++        std::unique_ptr<int8_t[]> owned(data);
+         jbyteArray result = env->NewByteArray(size);
+-        env->SetByteArrayRegion(result, 0, size, data);
++        if (result && size) env->SetByteArrayRegion(result, 0, size, data);
+ 
+         return result;
+ 
+@@ -249,9 +259,10 @@ JNIEXPORT jboolean JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_unseri
+         jbyte* data = env->GetByteArrayElements(sram, &isCopy);
+         jsize size = env->GetArrayLength(sram);
+ 
+-        LibretroDroid::getInstance().unserializeSRAM(data, size);
++        bool restored = LibretroDroid::getInstance().unserializeSRAM(data, size);
+ 
+         env->ReleaseByteArrayElements(sram, data, JNI_ABORT);
++        return restored ? JNI_TRUE : JNI_FALSE;
+ 
+     } catch (std::exception &exception) {
+         LOGE("Error in unserializeSRAM: %s", exception.what());
+@@ -269,8 +280,9 @@ JNIEXPORT jbyteArray JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_seri
+     try {
+         auto [data, size] = LibretroDroid::getInstance().serializeSRAM();
+ 
++        std::unique_ptr<int8_t[]> owned(data);
+         jbyteArray result = env->NewByteArray(size);
+-        env->SetByteArrayRegion(result, 0, size, (jbyte *) data);
++        if (result && size) env->SetByteArrayRegion(result, 0, size, data);
+ 
+         return result;
+ 
+@@ -438,14 +450,16 @@ JNIEXPORT void JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_loadGameFr
+ ) {
+     try {
+         size_t size = env->GetArrayLength(gameFileBytes);
+-        auto* data = new int8_t[size];
++        if (size == 0 || size > 32 * 1024 * 1024) throw std::runtime_error("ROM exceeds memory limit");
++        auto data = std::make_unique<int8_t[]>(size);
+         env->GetByteArrayRegion(
+             gameFileBytes,
+             0,
+             size,
+-            reinterpret_cast<int8_t*>(data)
++            data.get()
+         );
+-        LibretroDroid::getInstance().loadGameFromBytes(data, size);
++        if (env->ExceptionCheck()) return;
++        LibretroDroid::getInstance().loadGameFromBytes(data.get(), size);
+     } catch (std::exception &exception) {
+         LOGE("Error in loadGameFromBytes: %s", exception.what());
+         JavaUtils::throwRetroException(env, ERROR_LOAD_GAME);
+diff --git a/libretrodroid/src/main/cpp/utils/utils.cpp b/libretrodroid/src/main/cpp/utils/utils.cpp
+index 16be515..9bf74e4 100644
+--- a/libretrodroid/src/main/cpp/utils/utils.cpp
++++ b/libretrodroid/src/main/cpp/utils/utils.cpp
+@@ -20,38 +20,38 @@
+ #include <unistd.h>
+ 
+ #include "utils.h"
+-#include "../log.h"
++#include <stdexcept>
++#include <cstring>
+ 
+ namespace libretrodroid {
+ 
+ Utils::ReadResult Utils::readFileAsBytes(const std::string &filePath) {
+-    std::ifstream fileStream(filePath);
+-    fileStream.seekg(0, std::ios::end);
+-    size_t size = fileStream.tellg();
+-    char* bytes = new char[size];
+-    fileStream.seekg(0, std::ios::beg);
+-    fileStream.read(bytes, size);
+-    fileStream.close();
+-
+-    return ReadResult { size, bytes };
++    std::ifstream stream(filePath, std::ios::binary | std::ios::ate);
++    const auto length = stream.tellg();
++    if (!stream || length <= 0 || length > 32 * 1024 * 1024) throw std::runtime_error("Invalid ROM size or file");
++    const size_t size = static_cast<size_t>(length);
++    auto bytes = std::make_unique<char[]>(size);
++    stream.seekg(0, std::ios::beg);
++    if (!stream.read(bytes.get(), size)) throw std::runtime_error("Incomplete ROM read");
++    return ReadResult { size, std::move(bytes) };
+ }
+ 
+ Utils::ReadResult Utils::readFileAsBytes(const int fileDescriptor) {
+-    FILE* file = fdopen(fileDescriptor, "r");
+-    size_t size = getFileSize(file);
+-
+-    char* bytes = new char[size];
+-    fread(bytes, sizeof(char), size, file);
+-    close(fileDescriptor);
+-    return ReadResult { size, bytes };
++    FILE* raw = fdopen(fileDescriptor, "rb");
++    if (!raw) { close(fileDescriptor); throw std::runtime_error("Cannot open ROM descriptor"); }
++    std::unique_ptr<FILE, decltype(&fclose)> file(raw, fclose);
++    const size_t size = getFileSize(file.get());
++    if (size == 0 || size > 32 * 1024 * 1024) throw std::runtime_error("Invalid ROM size");
++    auto bytes = std::make_unique<char[]>(size);
++    if (fread(bytes.get(), 1, size, file.get()) != size) throw std::runtime_error("Incomplete ROM read");
++    return ReadResult { size, std::move(bytes) };
+ }
+ 
+ size_t Utils::getFileSize(FILE* file) {
+-    fseek(file, 0, SEEK_SET);
+-    fseek(file, 0, SEEK_END);
+-    size_t size = ftell(file);
+-    fseek(file, 0, SEEK_SET);
+-    return size;
++    if (!file || fseek(file, 0, SEEK_END) != 0) throw std::runtime_error("Cannot seek ROM");
++    const long size = ftell(file);
++    if (size < 0 || fseek(file, 0, SEEK_SET) != 0) throw std::runtime_error("Cannot determine ROM size");
++    return static_cast<size_t>(size);
+ }
+ 
+ const char* Utils::cloneToCString(const std::string &input) {
+diff --git a/libretrodroid/src/main/cpp/utils/utils.h b/libretrodroid/src/main/cpp/utils/utils.h
+index b8f5240..6a3f8a9 100644
+--- a/libretrodroid/src/main/cpp/utils/utils.h
++++ b/libretrodroid/src/main/cpp/utils/utils.h
+@@ -18,13 +18,18 @@
+ #ifndef LIBRETRODROID_UTILS_H
+ #define LIBRETRODROID_UTILS_H
+ 
++#include <cstddef>
++#include <cstdio>
++#include <memory>
++#include <string>
++
+ namespace libretrodroid {
+ 
+ class Utils {
+ public:
+     struct ReadResult {
+         size_t size;
+-        char* data;
++        std::unique_ptr<char[]> data;
+     };
+ 
+     static ReadResult readFileAsBytes(const std::string &filePath);
+diff --git a/libretrodroid/src/main/java/com/swordfish/libretrodroid/GLRetroView.kt b/libretrodroid/src/main/java/com/swordfish/libretrodroid/GLRetroView.kt
+index 7eb8602..91610da 100644
+--- a/libretrodroid/src/main/java/com/swordfish/libretrodroid/GLRetroView.kt
++++ b/libretrodroid/src/main/java/com/swordfish/libretrodroid/GLRetroView.kt
+@@ -34,12 +34,13 @@ import androidx.lifecycle.OnLifecycleEvent
+ import androidx.lifecycle.coroutineScope
+ import com.swordfish.libretrodroid.KtUtils.awaitUninterruptibly
+ import com.swordfish.libretrodroid.gamepad.GamepadsManager
+-import kotlinx.coroutines.GlobalScope
+ import kotlinx.coroutines.flow.Flow
+ import kotlinx.coroutines.flow.MutableSharedFlow
+ import kotlinx.coroutines.launch
+ import java.util.Locale
+ import java.util.concurrent.CountDownLatch
++import java.util.concurrent.TimeUnit
++import java.util.concurrent.atomic.AtomicBoolean
+ import javax.microedition.khronos.egl.EGLConfig
+ import javax.microedition.khronos.opengles.GL10
+ import kotlin.properties.Delegates
+@@ -115,9 +116,12 @@ class GLRetroView(
+     }
+ 
+     @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+-    fun onDestroy() = catchExceptions {
+-        LibretroDroid.destroy()
++    fun onDestroy() {
++        // An aborted load must still release the native core and ROM buffer.
++        isEmulationReady = false
+         lifecycle = null
++        try { LibretroDroid.destroy() }
++        catch (e: Exception) { Log.e(TAG_LOG, "Error releasing core", e) }
+     }
+ 
+     private fun getDeviceLanguage() = Locale.getDefault().language
+@@ -319,20 +323,19 @@ class GLRetroView(
+         override fun onDrawFrame(gl: GL10) = catchExceptions {
+             if (isEmulationReady) {
+                 LibretroDroid.step(this@GLRetroView)
+-                lifecycle?.coroutineScope?.launch {
+-                    retroGLEventsSubject.emit(GLRetroEvents.FrameRendered)
+-                }
++                // RetroTV consumes SurfaceCreated only. No coroutine per video frame:
++                // a busy UI must not accumulate an unbounded event queue.
+             }
+         }
+ 
+         override fun onSurfaceChanged(gl: GL10, width: Int, height: Int) = catchExceptions {
+-            Thread.currentThread().priority = Thread.MAX_PRIORITY
++            Thread.currentThread().priority = Thread.NORM_PRIORITY
+             LibretroDroid.onSurfaceChanged(width, height)
+         }
+ 
+ 
+         override fun onSurfaceCreated(gl: GL10, config: EGLConfig) = catchExceptions {
+-            Thread.currentThread().priority = Thread.MAX_PRIORITY
++            Thread.currentThread().priority = Thread.NORM_PRIORITY
+             initializeCore()
+             lifecycle?.coroutineScope?.launch {
+                 retroGLEventsSubject.emit(GLRetroEvents.SurfaceCreated)
+@@ -379,15 +382,12 @@ class GLRetroView(
+             if (isAborted) return
+             block()
+         } catch (e: RetroException) {
+-            GlobalScope.launch {
+-                retroGLIssuesErrors.emit(e.errorCode)
+-            }
+             isAborted = true
++            retroGLIssuesErrors.tryEmit(e.errorCode)
+         } catch (e: Exception) {
+             Log.e(TAG_LOG, "Error in GLRetroView", e)
+-            GlobalScope.launch {
+-                retroGLIssuesErrors.emit(LibretroDroid.ERROR_GENERIC)
+-            }
++            isAborted = true
++            retroGLIssuesErrors.tryEmit(LibretroDroid.ERROR_GENERIC)
+         }
+     }
+ 
+@@ -397,14 +397,17 @@ class GLRetroView(
+         }
+ 
+         val latch = CountDownLatch(1)
+-        var result: T? = null
++        var result: Result<T>? = null
++        val cancelled = AtomicBoolean(false)
+         queueEvent {
+-            result = block()
+-            latch.countDown()
++            try { if (!cancelled.get()) result = runCatching(block) }
++            finally { latch.countDown() }
+         }
+-
+-        latch.awaitUninterruptibly()
+-        return result!!
++        if (!latch.await(2, TimeUnit.SECONDS)) {
++            cancelled.set(true)
++            throw IllegalStateException("Emulation thread did not respond")
++        }
++        return result!!.getOrThrow()
+     }
+ 
+     private fun buildShader(config: ShaderConfig): GLRetroShader {
+diff --git a/libretrodroid/src/main/java/com/swordfish/libretrodroid/LibretroDroid.java b/libretrodroid/src/main/java/com/swordfish/libretrodroid/LibretroDroid.java
+index 50eafa1..3b1ce0f 100644
+--- a/libretrodroid/src/main/java/com/swordfish/libretrodroid/LibretroDroid.java
++++ b/libretrodroid/src/main/java/com/swordfish/libretrodroid/LibretroDroid.java
+@@ -98,6 +98,9 @@ public class LibretroDroid {
+     public static native void loadGameFromBytes(byte[] gameFileBytes);
+     public static native void loadGameFromVirtualFiles(List<DetachedVirtualFile> virtualFiles);
+     public static native void resume();
++    public static native String audioDiagnostics();
++
++    public static native float getAspectRatio();
+ 
+     public static native void onSurfaceCreated();
+     public static native void onSurfaceChanged(int width, int height);
