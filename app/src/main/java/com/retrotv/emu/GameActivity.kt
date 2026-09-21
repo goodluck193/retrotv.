@@ -181,6 +181,7 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
     override fun onPause() {
         checkpointJob?.cancel(); memoryJob?.cancel(); setScreenAwake(false)
         if (rewinding) finishRewind(false, resume = false)
+        rewindButton.clear()
         if (ready) pausePlayer()
         super.onPause()
     }

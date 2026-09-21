@@ -36,7 +36,6 @@
             <RadioButton android:id="@+id/slSmart" style="@style/SettingsRadio" android:text="@string/sl_smart" />
             <RadioButton android:id="@+id/slLight" style="@style/SettingsRadio" android:text="@string/sl_light" />
             <RadioButton android:id="@+id/slMedium" style="@style/SettingsRadio" android:text="@string/sl_medium" />
-            <RadioButton android:id="@+id/slStrong" style="@style/SettingsRadio" android:text="@string/sl_strong" />
         </RadioGroup>
 
         <TextView style="@style/SettingsHeader" android:layout_marginTop="24dp"

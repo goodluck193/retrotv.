@@ -49,7 +49,7 @@ class SettingsActivity : AppCompatActivity() {
         }
         val filterIds = listOf(Prefs.FILTER_SHARP to R.id.fSharp, Prefs.FILTER_SMOOTH to R.id.fSmooth, Prefs.FILTER_CRT to R.id.fCrt, Prefs.FILTER_LCD to R.id.fLcd)
         bind(R.id.filterGroup, filterIds.firstOrNull { it.first == defaultFilter }?.second ?: R.id.fSharp) { id -> defaultFilter = filterIds.first { it.second == id }.first }
-        val smoothIds = listOf("basic" to R.id.slBasic, "smart" to R.id.slSmart, "light" to R.id.slLight, "medium" to R.id.slMedium, "strong" to R.id.slStrong)
+        val smoothIds = listOf("basic" to R.id.slBasic, "smart" to R.id.slSmart, "light" to R.id.slLight, "medium" to R.id.slMedium)
         bind(R.id.smoothGroup, smoothIds.firstOrNull { it.first == smoothLevel }?.second ?: R.id.slBasic) { id -> smoothLevel = smoothIds.first { it.second == id }.first }
         bind(R.id.audioGroup, if (audioLowLatency) R.id.aLow else R.id.aStd) { audioLowLatency = it == R.id.aLow }
         bind(R.id.resGroup, when (renderHeight) { 1080 -> R.id.r1080; 0 -> R.id.rNative; else -> R.id.r720 }) { renderHeight = when (it) { R.id.r1080 -> 1080; R.id.rNative -> 0; else -> 720 } }
