@@ -117,6 +117,8 @@ object CoverArt {
                     } }
                     val decoded = decode(inputFile) ?: error("COVER_INVALID")
                     bitmap = decoded
+                    // Keep one temporary payload per import within the shared 8 MiB reserve.
+                    check(inputFile.delete()) { "COVER_INVALID" }
                     outputFile.outputStream().use { check(decoded.compress(Bitmap.CompressFormat.PNG, 100, it)) { "COVER_INVALID" } }
                     ensureActive()
                     check(outputFile.renameTo(file)) { "COVER_INVALID" }
@@ -132,7 +134,7 @@ object CoverArt {
         BitmapFactory.decodeFile(file.path, bounds)
         if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
         val options = BitmapFactory.Options().apply { inSampleSize = 1; inPreferredConfig = Bitmap.Config.RGB_565 }
-        while (bounds.outWidth / options.inSampleSize > 512 || bounds.outHeight / options.inSampleSize > 512) options.inSampleSize *= 2
+        while (bounds.outWidth > 512L * options.inSampleSize || bounds.outHeight > 512L * options.inSampleSize) options.inSampleSize *= 2
         return try { BitmapFactory.decodeFile(file.path, options) } catch (_: OutOfMemoryError) { clearMemory(); null }
     }
     private suspend fun download(context: Context, url: String, file: File): Boolean {
