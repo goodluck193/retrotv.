@@ -17,7 +17,7 @@ import com.retrotv.emu.Prefs.defaultFilter
 import com.retrotv.emu.Prefs.renderHeight
 import com.retrotv.emu.Prefs.rewindEnabled
 import com.retrotv.emu.Prefs.smoothLevel
-import com.retrotv.emu.Prefs.wallpaper
+import com.retrotv.emu.Prefs.sidebarTheme
 import com.swordfish.libretrodroid.*
 import kotlinx.coroutines.*
 import java.io.File
@@ -80,7 +80,7 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         super.onCreate(savedInstanceState)
         @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-        root = FrameLayout(this).apply { background = SidebarDrawable(wallpaper) }
+        root = FrameLayout(this).apply { background = SidebarDrawable(sidebarTheme) }
         setContentView(root)
         root.addView(TextView(this).apply { text = getString(R.string.loading_game); gravity = Gravity.CENTER }, FrameLayout.LayoutParams(-1, -1))
         metadata = LibraryMetadata(this)

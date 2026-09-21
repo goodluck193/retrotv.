@@ -41,7 +41,7 @@ object Prefs {
         get() = sp(this).getString("filter", FILTER_SHARP) ?: FILTER_SHARP
         set(v) = sp(this).edit().putString("filter", v).apply()
 
-    var Context.wallpaper: String
+    var Context.sidebarTheme: String
         get() = sp(this).getString("wallpaper", "black") ?: "black"
         set(v) = sp(this).edit().putString("wallpaper", v).apply()
 

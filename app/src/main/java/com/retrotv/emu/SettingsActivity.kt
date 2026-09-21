@@ -12,7 +12,7 @@ import com.retrotv.emu.Prefs.downloadCovers
 import com.retrotv.emu.Prefs.renderHeight
 import com.retrotv.emu.Prefs.rewindEnabled
 import com.retrotv.emu.Prefs.smoothLevel
-import com.retrotv.emu.Prefs.wallpaper
+import com.retrotv.emu.Prefs.sidebarTheme
 import kotlinx.coroutines.*
 import java.io.File
 
@@ -38,13 +38,13 @@ class SettingsActivity : AppCompatActivity() {
         val preview = findViewById<View>(R.id.wallpaperPreview)
         val wallpaperButton = findViewById<Button>(R.id.btnWallpaper)
         fun showWallpaper() {
-            wallpaperButton.text = getString(R.string.wallpaper) + " · " + wallpaperNames[wallpapers.indexOf(wallpaper).coerceAtLeast(0)]
-            preview.background = SidebarDrawable(wallpaper)
+            wallpaperButton.text = getString(R.string.wallpaper) + " · " + wallpaperNames[wallpapers.indexOf(sidebarTheme).coerceAtLeast(0)]
+            preview.background = SidebarDrawable(sidebarTheme)
         }
         showWallpaper()
         wallpaperButton.setOnClickListener {
-            AlertDialog.Builder(this).setTitle(R.string.wallpaper).setSingleChoiceItems(wallpaperNames, wallpapers.indexOf(wallpaper)) { dialog, index ->
-                wallpaper = wallpapers[index]; showWallpaper(); dialog.dismiss()
+            AlertDialog.Builder(this).setTitle(R.string.wallpaper).setSingleChoiceItems(wallpaperNames, wallpapers.indexOf(sidebarTheme)) { dialog, index ->
+                sidebarTheme = wallpapers[index]; showWallpaper(); dialog.dismiss()
             }.show()
         }
         val filterIds = listOf(Prefs.FILTER_SHARP to R.id.fSharp, Prefs.FILTER_SMOOTH to R.id.fSmooth, Prefs.FILTER_CRT to R.id.fCrt, Prefs.FILTER_LCD to R.id.fLcd)
