@@ -55,8 +55,8 @@
     <string name="storage">Speicher</string>
     <string name="clear_states">Speicherstände löschen</string>
     <string name="clear_covers">Cover-Cache leeren</string>
-    <string name="download_covers">Cover herunterladen</string>
-    <string name="cover_privacy">Optionale Bilder von Libretro Thumbnails. Spieltitel werden an GitHub gesendet, ROM-Inhalte niemals. Gespeicherte Cover funktionieren offline.</string>
+    <string name="download_covers">Fehlende Cover herunterladen (Internet)</string>
+    <string name="cover_privacy">Standardmäßig aus, auch nach diesem Update. Bei Aktivierung erhält GitHub den Pfad des angeforderten Bildes (Spieltitel) und deine IP-Adresse. Spiele und Spielstände werden nie hochgeladen. Gespeicherte und lokale Cover funktionieren offline.</string>
     <string name="language">Sprache</string>
     <string name="wallpaper">Seitenränder</string>
     <string name="wallpaper_black">Schwarz (Standard)</string>
@@ -68,7 +68,7 @@
     <string name="wallpaper_hint">Statische Hintergründe. Die ursprünglichen Spielproportionen bleiben erhalten.</string>
     <string name="performance_hint">Scharfe Pixel oder einfaches bilineares Filtern bei 720p belasten die GPU weniger. Probiere sie bei ruckelnden Spielen. Die Hintergründe sind unbewegt.</string>
     <string name="controls">DualSense-Steuerung</string>
-    <string name="controls_help">Linker Stick: bewegen\nSteuerkreuz ←: zum Rückspulen halten; zum Fortsetzen loslassen\nBeim Rückspulen: linker Stick wählt den Moment; ○ bricht ab\nTouchpad-Klick: Pause (alternativ Back am Fernseher)\nL2 / R2: SNES L / R; L1 / R1 funktionieren ebenfalls\nOptions: Start · Create: Select\nRechter Stick und Stick-Klicks: deaktiviert\nManche Fernseher leiten den Touchpad-Klick nicht weiter.</string>
+    <string name="controls_help">Linker Stick: bewegen\nSteuerkreuz ↑: Pausenmenü · ←: zum Rückspulen halten\n← loslassen: fortsetzen · ○: Rückspulen abbrechen\nSNES: ✕ B · ○ A · □ Y · △ X\nNES: ✕ B · ○ A · □ Turbo B · △ Turbo A\nSega: □ A · ✕ B · ○ C · △ Y\nL1/L2: SNES L / Sega X\nR1/R2: SNES R / Sega Z\nSega X/Y/Z: Spiele mit 6 Tasten.\nOptions: Start · Create: Select / Sega Mode\nRechter Stick und Stick-Klicks: deaktiviert\nTV-Back öffnet ebenfalls das Menü.</string>
     <string name="licenses">Info und Lizenzen</string>
     <string name="legal_summary">Es werden keine Spiel-ROMs mitgeliefert oder heruntergeladen. Importiere nur Spiele, die du nutzen darfst. Cover und Konsolennamen gehören ihren Rechteinhabern; es besteht keine behauptete Verbindung. Snes9x und Genesis Plus GX beschränken die kommerzielle Nutzung. Lies vor der Weitergabe die Lizenzen.</string>
     <string name="license_files">Lizenztexte von Drittanbietern</string>
@@ -105,7 +105,7 @@
     <string name="rewind_help">Steuerkreuz ← halten: zurück · Linker Stick: anpassen\n← loslassen: fortsetzen · ○: abbrechen</string>
     <string name="rewind_position">Rückspulen   −%1$.1f s   %2$d / %3$d</string>
     <string name="rewind_restore_failed">Dieser Moment konnte nicht wiederhergestellt werden</string>
-    <string name="game_hint">Touchpad: Menü · Steuerkreuz ← halten: zurück · Options: Start</string>
+    <string name="game_hint">Steuerkreuz ↑: Menü · ← halten: zurück · Options: Start</string>
     <string name="diagnostics_body">%1$s\n\nRefills: fehlende Audiodaten. Xruns: Ausgabefehler.\nRückspulen: %2$d ms, %3$d Zustände.\nVerlaufsspeicher: %4$d / %5$d KiB.\nBei Speichermangel wird das Rückspulen deaktiviert.</string>
     <string name="saving_exit">Speichern und beenden…</string>
     <string name="save_timeout">Zeitlimit beim Speichern erreicht. Der vorherige Spielstand ist verfügbar.</string>
@@ -144,4 +144,9 @@
     <string name="import_empty">Die Datei ist leer</string>
     <string name="import_incomplete">Die Datei wurde nicht vollständig kopiert. Import abgebrochen.</string>
     <string name="import_signature">Die Datei entspricht nicht dem Konsolenformat. Import abgebrochen.</string>
+    <string name="enable">Aktivieren</string>
+    <string name="choose_cover">Cover aus Datei auswählen</string>
+    <string name="cover_saved">Cover auf diesem Gerät gespeichert.</string>
+    <string name="cover_invalid">Wähle ein Bild bis 4 MiB (PNG, JPEG oder WebP).</string>
+    <string name="cover_space">Nicht genug freier Speicherplatz für ein Cover.</string>
 </resources>

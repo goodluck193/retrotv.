@@ -55,8 +55,8 @@
     <string name="storage">Archiviazione</string>
     <string name="clear_states">Elimina stati salvati</string>
     <string name="clear_covers">Svuota cache copertine</string>
-    <string name="download_covers">Scarica copertine</string>
-    <string name="cover_privacy">Immagini facoltative da Libretro Thumbnails. I titoli vengono inviati a GitHub; i ROM non vengono mai caricati. La cache funziona offline.</string>
+    <string name="download_covers">Scarica copertine mancanti (internet)</string>
+    <string name="cover_privacy">Disattivato per impostazione predefinita, anche dopo questo aggiornamento. Se attivato, GitHub riceve il percorso dell’immagine richiesta (titolo del gioco) e il tuo indirizzo IP. Giochi e salvataggi non vengono mai inviati. Le copertine salvate e locali funzionano offline.</string>
     <string name="language">Lingua</string>
     <string name="wallpaper">Bordi laterali</string>
     <string name="wallpaper_black">Nero (predefinito)</string>
@@ -68,7 +68,7 @@
     <string name="wallpaper_hint">Sfondi statici. Le proporzioni originali del gioco vengono mantenute.</string>
     <string name="performance_hint">Pixel nitidi o bilineare semplice a 720p riducono il carico GPU. Provali se il gioco rallenta. Gli sfondi non sono animati.</string>
     <string name="controls">Comandi DualSense</string>
-    <string name="controls_help">Stick sinistro: movimento\nCroce ←: tieni premuto per riavvolgere; rilascia per continuare\nDurante il riavvolgimento: stick sinistro per regolare; ○ per annullare\nClic del touchpad: pausa (in alternativa, Back della TV)\nL2 / R2: SNES L / R; funzionano anche L1 / R1\nOptions: Start · Create: Select\nStick destro e clic degli stick: disattivati\nAlcune TV non trasmettono il clic del touchpad.</string>
+    <string name="controls_help">Stick sinistro: movimento\nCroce ↑: menu pausa · ←: tieni premuto per riavvolgere\nRilascia ←: continua · ○: annulla riavvolgimento\nSNES: ✕ B · ○ A · □ Y · △ X\nNES: ✕ B · ○ A · □ Turbo B · △ Turbo A\nSega: □ A · ✕ B · ○ C · △ Y\nL1/L2: SNES L / Sega X\nR1/R2: SNES R / Sega Z\nSega X/Y/Z: giochi a 6 pulsanti.\nOptions: Start · Create: Select / Sega Mode\nStick destro e clic degli stick: disattivati\nBack della TV apre anche il menu.</string>
     <string name="licenses">Informazioni e licenze</string>
     <string name="legal_summary">Non sono inclusi né scaricati ROM di giochi. Importa solo giochi che hai diritto di usare. Copertine e nomi appartengono ai rispettivi titolari; non è implicata alcuna affiliazione. Snes9x e Genesis Plus GX limitano l’uso commerciale. Leggi le licenze prima di ridistribuire questa versione.</string>
     <string name="license_files">Testi delle licenze di terze parti</string>
@@ -105,7 +105,7 @@
     <string name="rewind_help">Tieni premuto ← sulla croce: riavvolgi · Stick sinistro: regola\nRilascia ←: continua · ○: annulla</string>
     <string name="rewind_position">Riavvolgimento   −%1$.1f s   %2$d / %3$d</string>
     <string name="rewind_restore_failed">Impossibile ripristinare questo momento</string>
-    <string name="game_hint">Touchpad: menu · Tieni premuto ← sulla croce: riavvolgi · Options: Start</string>
+    <string name="game_hint">Croce ↑: menu · Tieni premuto ←: riavvolgi · Options: Start</string>
     <string name="diagnostics_body">%1$s\n\nRefills: dati audio insufficienti. Xruns: interruzioni in uscita.\nRiavvolgimento: %2$d ms, %3$d istantanee.\nMemoria cronologia: %4$d / %5$d KiB.\nIl riavvolgimento si disattiva quando la memoria è scarsa.</string>
     <string name="saving_exit">Salvataggio e uscita…</string>
     <string name="save_timeout">Tempo di salvataggio scaduto. Il salvataggio precedente è disponibile.</string>
@@ -144,4 +144,9 @@
     <string name="import_empty">Il file è vuoto</string>
     <string name="import_incomplete">Il file non è stato copiato completamente. Importazione annullata.</string>
     <string name="import_signature">Il file non corrisponde al formato della console. Importazione annullata.</string>
+    <string name="enable">Attiva</string>
+    <string name="choose_cover">Scegli copertina da un file</string>
+    <string name="cover_saved">Copertina salvata su questo dispositivo.</string>
+    <string name="cover_invalid">Scegli un’immagine fino a 4 MiB (PNG, JPEG o WebP).</string>
+    <string name="cover_space">Spazio libero insufficiente per la copertina.</string>
 </resources>

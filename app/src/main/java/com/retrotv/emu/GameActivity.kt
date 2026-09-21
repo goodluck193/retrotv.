@@ -66,9 +66,10 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
     private var lastAuto = 0L
     private var lastSnapshot = 0L
     private val sentKeys = mutableSetOf<Int>()
-    private val leftShoulder = ButtonLatch { sendButton(KeyEvent.KEYCODE_BUTTON_L1, it) }
-    private val rightShoulder = ButtonLatch { sendButton(KeyEvent.KEYCODE_BUTTON_R1, it) }
+    private val leftShoulder = ButtonLatch { if (rom.system != SystemType.NES) sendButton(KeyEvent.KEYCODE_BUTTON_L1, it) }
+    private val rightShoulder = ButtonLatch { if (rom.system != SystemType.NES) sendButton(KeyEvent.KEYCODE_BUTTON_R1, it) }
     private val rewindButton = ButtonLatch { if (it) beginRewind() else if (rewinding) finishRewind(true) }
+    private val menuButton = ButtonLatch { if (it) showPauseMenu() }
     private var l2Axis = false
     private var r2Axis = false
     private var gameAspect = 4f / 3f
@@ -107,6 +108,8 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
                     systemDirectory = File(filesDir, "system").apply { mkdirs() }.absolutePath
                     savesDirectory = saves.directory.absolutePath
                     saveRAMState = ramResult.getOrNull()
+                    // Dedicated turbo buttons; ordinary A/B remain unaffected.
+                    if (system == SystemType.NES) variables = arrayOf(Variable("fceumm_turbo_enable", "Player 1"))
                     shader = shaderFor(currentFilter)
                     preferLowLatencyAudio = audioLowLatency; rumbleEventsEnabled = false
                 }
@@ -182,6 +185,7 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         checkpointJob?.cancel(); memoryJob?.cancel(); setScreenAwake(false)
         if (rewinding) finishRewind(false, resume = false)
         rewindButton.clear()
+        menuButton.clear()
         if (ready) pausePlayer()
         super.onPause()
     }
@@ -433,7 +437,14 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         if (rewinding) finishRewind(false, false)
         menuShowing = true; pausePlayer(); capturePreview(0)
         val content = layoutInflater.inflate(R.layout.dialog_pause, null)
-        val dialog = AlertDialog.Builder(this, R.style.PauseDialog).setView(content).create()
+        val dialog = object : AlertDialog(this, R.style.PauseDialog) {
+            override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
+                if (event.isFromSource(InputDevice.SOURCE_JOYSTICK)) {
+                    menuButton.update(2, event.getAxisValue(MotionEvent.AXIS_HAT_Y) < -.5f)
+                }
+                return super.dispatchGenericMotionEvent(event)
+            }
+        }.apply { setView(content) }
         content.findViewById<Button>(R.id.btnResume).setOnClickListener { dialog.dismiss() }
         content.findViewById<Button>(R.id.btnSave).setOnClickListener { chooseSlot(true) }
         content.findViewById<Button>(R.id.btnLoad).setOnClickListener { chooseSlot(false) }
@@ -449,6 +460,7 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         content.findViewById<Button>(R.id.btnExit).setOnClickListener { exitGame() }
         content.findViewById<Button>(R.id.btnExitApp).setOnClickListener { exitGame(true) }
         dialog.setOnKeyListener { _, code, event ->
+            if (code == KeyEvent.KEYCODE_DPAD_UP) menuButton.update(1, event.action == KeyEvent.ACTION_DOWN)
             if (event.scanCode == 318 || code == KeyEvent.KEYCODE_BUTTON_THUMBR || code == KeyEvent.KEYCODE_BUTTON_THUMBL) true
             else when (code) {
                 KeyEvent.KEYCODE_BUTTON_B -> { if (event.action == KeyEvent.ACTION_UP) dialog.dismiss(); true }
@@ -507,6 +519,7 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
             return true
         }
         if (event.keyCode == KeyEvent.KEYCODE_DPAD_LEFT) { rewindButton.update(1, down); return true }
+        if (event.keyCode == KeyEvent.KEYCODE_DPAD_UP) { menuButton.update(1, down); return true }
         if (rewinding) {
             if (down && (event.keyCode == KeyEvent.KEYCODE_BUTTON_B || event.keyCode == KeyEvent.KEYCODE_BACK)) finishRewind(false)
             return true
@@ -517,13 +530,14 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
             KeyEvent.KEYCODE_BUTTON_L2 -> { leftShoulder.update(2, down); return true }
             KeyEvent.KEYCODE_BUTTON_R1 -> { rightShoulder.update(1, down); return true }
             KeyEvent.KEYCODE_BUTTON_R2 -> { rightShoulder.update(2, down); return true }
-            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_RIGHT -> return true
-            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> { sendButton(KeyEvent.KEYCODE_BUTTON_A, down); return true }
+            KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_RIGHT -> return true
+            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> { sendButton(KeyEvent.KEYCODE_BUTTON_B, down); return true }
         }
         if (event.isFromSource(InputDevice.SOURCE_GAMEPAD) || event.isFromSource(InputDevice.SOURCE_JOYSTICK)) {
             // Whitelist gameplay buttons: PS, vendor buttons and right-stick events do nothing.
-            if (event.keyCode in intArrayOf(KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_BUTTON_B,
-                    KeyEvent.KEYCODE_BUTTON_X, KeyEvent.KEYCODE_BUTTON_Y, KeyEvent.KEYCODE_BUTTON_START, KeyEvent.KEYCODE_BUTTON_SELECT)) sendButton(event.keyCode, down)
+            val mapped = GamepadMapping.faceButton(event.keyCode)
+            if (mapped != null) sendButton(mapped, down)
+            else if (event.keyCode == KeyEvent.KEYCODE_BUTTON_START || event.keyCode == KeyEvent.KEYCODE_BUTTON_SELECT) sendButton(event.keyCode, down)
             return true
         }
         return super.dispatchKeyEvent(event)
@@ -545,6 +559,8 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         if (touchpadClick(event)) return true
         if (!ready || menuShowing || protectingSave || !event.isFromSource(InputDevice.SOURCE_JOYSTICK)) return super.dispatchGenericMotionEvent(event)
         controllerId = event.deviceId
+        menuButton.update(2, event.getAxisValue(MotionEvent.AXIS_HAT_Y) < -.5f)
+        if (menuShowing) return true
         rewindButton.update(2, event.getAxisValue(MotionEvent.AXIS_HAT_X) < -.5f)
         if (rewinding) {
             val x = event.getAxisValue(MotionEvent.AXIS_X)
@@ -570,7 +586,7 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
     override fun onInputDeviceRemoved(deviceId: Int) {
         if (deviceId == controllerId) {
             if (rewinding) finishRewind(false, false)
-            rewindButton.clear(); showPauseMenu(); toast(getString(R.string.controller_disconnected))
+            rewindButton.clear(); menuButton.clear(); showPauseMenu(); toast(getString(R.string.controller_disconnected))
         }
     }
     override fun onInputDeviceAdded(deviceId: Int) = Unit

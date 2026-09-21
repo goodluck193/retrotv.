@@ -55,8 +55,8 @@
     <string name="storage">Память</string>
     <string name="clear_states">Удалить снимки состояния</string>
     <string name="clear_covers">Очистить кэш обложек</string>
-    <string name="download_covers">Загружать обложки</string>
-    <string name="cover_privacy">Обложки из Libretro Thumbnails по желанию. Названия игр передаются GitHub; содержимое ROM не отправляется. Кэш работает без сети.</string>
+    <string name="download_covers">Загружать недостающие обложки (интернет)</string>
+    <string name="cover_privacy">По умолчанию выключено, в том числе после этого обновления. При включении GitHub видит адрес запрошенной картинки (название игры) и ваш IP-адрес. Игры и сохранения не загружаются на сервер. Скачанные и локальные обложки работают без интернета.</string>
     <string name="language">Язык</string>
     <string name="wallpaper">Боковые поля</string>
     <string name="wallpaper_black">Чёрные (по умолчанию)</string>
@@ -68,7 +68,7 @@
     <string name="wallpaper_hint">Неподвижные фоны. Пропорции игры сохраняются.</string>
     <string name="performance_hint">Чёткие пиксели или простое билинейное сглаживание в 720p меньше нагружают графику. Выберите их, если игра тормозит. Фоны без анимации.</string>
     <string name="controls">Управление DualSense</string>
-    <string name="controls_help">Левый стик: движение\n← крестовины: удерживать для перемотки; отпустить для продолжения\nПри перемотке: левый стик выбирает момент; ○ отменяет\nНажатие сенсорной панели: меню паузы (запасной вариант — Back на пульте)\nL2 / R2: SNES L / R; L1 / R1 тоже работают\nOptions: Start · Create: Select\nПравый стик и нажатия стиков отключены\nНекоторые прошивки ТВ не передают нажатие сенсорной панели.</string>
+    <string name="controls_help">Левый стик: движение\n↑ крестовины: меню паузы · ←: удерживать для перемотки\nОтпустить ←: продолжить · ○: отменить перемотку\nSNES: ✕ B · ○ A · □ Y · △ X\nNES: ✕ B · ○ A · □ Турбо B · △ Турбо A\nSega: □ A · ✕ B · ○ C · △ Y\nL1/L2: SNES L / Sega X\nR1/R2: SNES R / Sega Z\nSega X/Y/Z работают в играх с шестью кнопками.\nOptions: Start · Create: Select / Sega Mode\nПравый стик и нажатия стиков отключены\nBack на пульте тоже открывает меню.</string>
     <string name="licenses">О приложении и лицензии</string>
     <string name="legal_summary">ROM игр не включены и не скачиваются. Добавляйте только игры, на использование которых у вас есть право. Обложки и названия консолей принадлежат правообладателям; приложение не связано с ними. Snes9x и Genesis Plus GX ограничивают коммерческое использование. Перед распространением прочитайте лицензии.</string>
     <string name="license_files">Тексты лицензий компонентов</string>
@@ -105,7 +105,7 @@
     <string name="rewind_help">Удерживать ← крестовины: назад · Левый стик: точнее\nОтпустить ←: продолжить · ○: отмена</string>
     <string name="rewind_position">Перемотка   −%1$.1f с   %2$d / %3$d</string>
     <string name="rewind_restore_failed">Не удалось восстановить этот момент</string>
-    <string name="game_hint">Сенсорная панель: меню · Удерживать ← крестовины: перемотка · Options: Start</string>
+    <string name="game_hint">↑ крестовины: меню · Удерживать ←: перемотка · Options: Start</string>
     <string name="diagnostics_body">%1$s\n\nRefills: нехватка аудиоданных. Xruns: сбои вывода.\nПеремотка: %2$d мс, %3$d снимков.\nПамять истории: %4$d / %5$d КБ.\nПри нехватке памяти перемотка отключается.</string>
     <string name="saving_exit">Сохранение и выход…</string>
     <string name="save_timeout">Запись не завершилась вовремя. Предыдущее сохранение доступно.</string>
@@ -144,4 +144,9 @@
     <string name="import_empty">Файл пустой</string>
     <string name="import_incomplete">Файл скопирован не полностью. Импорт отменён.</string>
     <string name="import_signature">Файл не соответствует формату консоли. Импорт отменён.</string>
+    <string name="enable">Включить</string>
+    <string name="choose_cover">Выбрать обложку из файла</string>
+    <string name="cover_saved">Обложка сохранена на устройстве.</string>
+    <string name="cover_invalid">Выберите изображение до 4 МиБ (PNG, JPEG или WebP).</string>
+    <string name="cover_space">Недостаточно свободного места для обложки.</string>
 </resources>

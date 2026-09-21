@@ -1,11 +1,11 @@
-# Retro Console 1.6
+# Retro Console 1.6.1
 
 A personal, noncommercial retro gaming app for Android TV 8+. Play your own NES / Dendy, Super Nintendo and Sega Mega Drive files with a DualSense controller. ARM 32-bit and 64-bit builds. **No games or game ROM downloads are included.**
 
 ## What changed
 
 - A simpler library: select a game to resume its autosave. Hold ✕ / OK for favorites, restart or deletion. Search, recent games and console categories remain available.
-- DualSense controls tailored to left-stick play, with preview rewind on D-pad Left and pause on the touchpad click.
+- DualSense controls tailored to left-stick play, with preview rewind on D-pad Left and pause on D-pad Up (key and HAT-axis events).
 - Black side borders by default, plus five static backgrounds: Midnight, Quiet Grid, Dunes, Forest and Arcade. Game proportions are preserved. Backgrounds allocate no image cache and run no animation loop.
 - English by default; Russian, Spanish, Portuguese, French, German and Italian selectable in Settings. All application messages are translated.
 - Better cover matching across regional names and punctuation, including Desert Demolition. A bundled filename index avoids online catalog searches on the TV. Images are optional, downloaded on demand and cached with fixed limits.
@@ -17,10 +17,10 @@ A personal, noncommercial retro gaming app for Android TV 8+. Play your own NES 
 | Control | During a game |
 | --- | --- |
 | Left stick | Movement, including diagonals |
-| ✕ ○ □ △ | Console face buttons |
-| L2 / R2 | SNES L / R; L1 / R1 also work |
+| ✕ ○ □ △ | Console face buttons; see the mapping below |
+| L2 / R2 | SNES L / R or Sega X / Z; L1 / R1 also work |
 | Options / Create | Start / Select |
-| Touchpad **click** | Pause menu |
+| D-pad ↑ | Pause menu |
 | Hold D-pad ← | Rewind with preview |
 | Left stick while rewinding | Adjust the selected moment; stops automatic scrubbing |
 | Release D-pad ← | Continue from the selected moment |
@@ -31,7 +31,22 @@ A personal, noncommercial retro gaming app for Android TV 8+. Play your own NES 
 
 The D-pad is reserved during gameplay because this profile uses the left stick for movement. D-pad navigation still works in menus. Touchpad swipes do nothing. The PS logo button is controlled by Android; it is not the touchpad click.
 
-Android exposes Sony touchpad clicks as mouse-button events on many kernels. Both button and mouse-event paths are handled. Some TV firmware consumes or does not expose the touchpad device; use remote Back on such devices. Real DualSense / TV testing is still required; unit tests cannot validate vendor firmware.
+Android exposes Sony touchpad clicks as mouse-button events on many kernels. Both button and mouse-event paths are handled. Some TV firmware consumes or does not expose the touchpad device; D-pad Up and remote Back are the reliable alternatives. Real DualSense / TV testing is still required; unit tests cannot validate vendor firmware.
+
+| DualSense | NES / Dendy | SNES | Sega Mega Drive |
+| --- | --- | --- | --- |
+| ✕ | B | B | B |
+| ○ | A | A | C |
+| □ | Turbo B | Y | A |
+| △ | Turbo A | X | Y |
+| L1 / L2 | Unused | L | X |
+| R1 / R2 | Unused | R | Z |
+| Options | Start | Start | Start |
+| Create | Select | Select | Mode |
+
+The face mapping translates Android's Xbox-style letter codes to RetroPad positions before passing them to LibretroDroid. NES dedicated turbo buttons are enabled for player 1; normal A/B are unchanged. NES shoulder buttons are ignored. Genesis Plus GX keeps its automatic 3/6-button detection for game compatibility; X/Y/Z and Mode only apply to six-button games. Holding a trigger and its matching shoulder together does not release the virtual button until both are released.
+
+Mappings checked against [FCEUmm](https://docs.libretro.com/library/fceumm/#joypad), [Snes9x](https://docs.libretro.com/library/snes9x/) and [Genesis Plus GX](https://docs.libretro.com/library/genesis_plus_gx/#joypad), plus the pinned LibretroDroid Android-to-libretro conversion.
 
 ## Saves, audio and resource limits
 
@@ -51,7 +66,11 @@ Use **Add game** to select one file through Android's document picker. Formats: 
 
 Limits: NES 8 MiB; SNES/Sega 16 MiB; source file 32 MiB; 200 ZIP entries; 32 MiB of skipped archive data; at least 200 MiB storage reserve. The 60-second import timeout is checked between reads; a blocked document provider can delay cancellation.
 
-Cover art is optional under Settings. Only game names are sent to GitHub / Libretro Thumbnails, never ROM contents. A missing match shows the console name. No commercial box art is bundled. Cover ownership is separate from emulator source licenses. RAM cache is bounded; disk cache is at most 64 MiB including two downloads, with a file-count limit. Clear it independently of games and saves.
+Online cover downloads are **off by default**, also when upgrading from the old default-on preference. Enabling them requires confirmation: GitHub / Libretro Thumbnails receives the requested public image path (containing the game title) and the network IP address, as with any image download. ROM data, saves and a library listing are never uploaded. Only paths in the bundled public catalog are requested; raw user filenames are never sent. With downloads off, the app makes no cover requests and existing cached images still load.
+
+For an offline cover, hold ✕ / OK on a game and choose **Choose cover from file**. Pick a local PNG, JPEG or WebP using Android's file picker. Input is capped at 4 MiB, decoded to at most 512 pixels per side and stored within the existing cover-cache budget. Clearing the cover cache also removes these imported images. The alternate Ecco title without “The” now resolves to the catalog entry; downloading that image still requires explicit online consent. Display names also strip stray closing region brackets.
+
+ A missing match shows the console name. No commercial box art is bundled. Cover ownership is separate from emulator source licenses. RAM cache is bounded; disk cache is at most 64 MiB including two downloads, with a file-count limit. Clear it independently of games and saves.
 
 ## Build
 

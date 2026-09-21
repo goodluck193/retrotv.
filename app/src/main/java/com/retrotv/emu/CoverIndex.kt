@@ -8,7 +8,7 @@ import java.util.zip.GZIPInputStream
 object CoverIndex {
     /** Stream metadata on IO; never retain a full catalog or scan the network from the TV. */
     suspend fun candidates(context: Context, rom: Rom): List<String> {
-        val key = CoverNames.normalize(rom.title)
+        val key = CoverNames.searchKey(rom.title)
         if (key.isBlank()) return emptyList()
         val result = mutableListOf<String>()
         val name = if (rom.system == SystemType.MEGADRIVE) "megadrive" else rom.system.id

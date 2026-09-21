@@ -55,8 +55,8 @@
     <string name="storage">Almacenamiento</string>
     <string name="clear_states">Eliminar estados guardados</string>
     <string name="clear_covers">Vaciar caché de carátulas</string>
-    <string name="download_covers">Descargar carátulas</string>
-    <string name="cover_privacy">Imágenes opcionales de Libretro Thumbnails. Los títulos se envían a GitHub; los ROM nunca se suben. La caché funciona sin conexión.</string>
+    <string name="download_covers">Descargar carátulas que faltan (internet)</string>
+    <string name="cover_privacy">Desactivado por defecto, también tras esta actualización. Al activarlo, GitHub recibe la ruta de la imagen solicitada (título del juego) y tu dirección IP. Los juegos y las partidas nunca se suben. Las carátulas guardadas y locales funcionan sin conexión.</string>
     <string name="language">Idioma</string>
     <string name="wallpaper">Bordes laterales</string>
     <string name="wallpaper_black">Negro (predeterminado)</string>
@@ -68,7 +68,7 @@
     <string name="wallpaper_hint">Fondos estáticos. Se conservan las proporciones originales del juego.</string>
     <string name="performance_hint">Píxeles nítidos o bilineal simple a 720p usan menos GPU. Pruébalos si el juego se ralentiza. Los fondos no tienen animación.</string>
     <string name="controls">Controles DualSense</string>
-    <string name="controls_help">Stick izquierdo: mover\nCruceta ←: mantener para rebobinar; soltar para continuar\nAl rebobinar: stick izquierdo ajusta el momento; ○ cancela\nClic del panel táctil: pausa (alternativa: Back del TV)\nL2 / R2: SNES L / R; L1 / R1 también funcionan\nOptions: Start · Create: Select\nStick derecho y clics de los sticks: desactivados\nAlgunos TV no transmiten el clic del panel táctil.</string>
+    <string name="controls_help">Stick izquierdo: mover\nCruceta ↑: menú de pausa · ←: mantener para rebobinar\nSoltar ←: continuar · ○: cancelar rebobinado\nSNES: ✕ B · ○ A · □ Y · △ X\nNES: ✕ B · ○ A · □ Turbo B · △ Turbo A\nSega: □ A · ✕ B · ○ C · △ Y\nL1/L2: SNES L / Sega X\nR1/R2: SNES R / Sega Z\nSega X/Y/Z: juegos de 6 botones.\nOptions: Start · Create: Select / Sega Mode\nStick derecho y clics de sticks: desactivados\nBack del TV también abre el menú.</string>
     <string name="licenses">Acerca de y licencias</string>
     <string name="legal_summary">No se incluyen ni descargan ROM de juegos. Importa solo juegos que tengas derecho a usar. Las carátulas y los nombres pertenecen a sus propietarios; no se implica afiliación. Snes9x y Genesis Plus GX restringen el uso comercial. Revisa las licencias antes de redistribuir esta versión.</string>
     <string name="license_files">Textos de licencias de terceros</string>
@@ -105,7 +105,7 @@
     <string name="rewind_help">Mantener cruceta ←: rebobinar · Stick izquierdo: ajustar\nSoltar ←: continuar · ○: cancelar</string>
     <string name="rewind_position">Rebobinado   −%1$.1f s   %2$d / %3$d</string>
     <string name="rewind_restore_failed">No se pudo restaurar este momento</string>
-    <string name="game_hint">Panel táctil: menú · Mantener cruceta ←: rebobinar · Options: Start</string>
+    <string name="game_hint">Cruceta ↑: menú · Mantener ←: rebobinar · Options: Start</string>
     <string name="diagnostics_body">%1$s\n\nRefills: falta de datos de audio. Xruns: fallos de salida.\nRebobinado: %2$d ms, %3$d capturas.\nMemoria del historial: %4$d / %5$d KiB.\nEl rebobinado se desactiva si hay poca memoria.</string>
     <string name="saving_exit">Guardando y saliendo…</string>
     <string name="save_timeout">Se agotó el tiempo de guardado. La partida anterior está disponible.</string>
@@ -144,4 +144,9 @@
     <string name="import_empty">El archivo está vacío</string>
     <string name="import_incomplete">El archivo no se copió por completo. Importación cancelada.</string>
     <string name="import_signature">El archivo no coincide con el formato de la consola. Importación cancelada.</string>
+    <string name="enable">Activar</string>
+    <string name="choose_cover">Elegir carátula de un archivo</string>
+    <string name="cover_saved">Carátula guardada en este dispositivo.</string>
+    <string name="cover_invalid">Elige una imagen de hasta 4 MiB (PNG, JPEG o WebP).</string>
+    <string name="cover_space">No hay suficiente espacio para la carátula.</string>
 </resources>

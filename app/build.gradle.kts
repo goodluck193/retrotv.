@@ -12,8 +12,8 @@ android {
         manifestPlaceholders["appLabel"] = "@string/app_name"
         minSdk = 26          // Android 8.0+
         targetSdk = 34
-        versionCode = 8
-        versionName = "1.6.0"
+        versionCode = 9
+        versionName = "1.6.1"
         ndk {
             // Both 32-bit and 64-bit TV chipsets.
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")

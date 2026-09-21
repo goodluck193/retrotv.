@@ -4,6 +4,35 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ControllerAndCoverTest {
+    @Test fun facePositionsReachTheExpectedRetroPadButtons() {
+        // Android key codes -> LibretroDroid key codes, whose letters are literal.
+        assertEquals(97, GamepadMapping.faceButton(96)) // Cross -> B (bottom)
+        assertEquals(96, GamepadMapping.faceButton(97)) // Circle -> A (right)
+        assertEquals(100, GamepadMapping.faceButton(99)) // Square -> Y (left)
+        assertEquals(99, GamepadMapping.faceButton(100)) // Triangle -> X (top)
+        assertNull(GamepadMapping.faceButton(107)) // R3 must never become a face button.
+    }
+    @Test fun menuPressOpensOnceUntilKeyAndHatAreReleased() {
+        var opens = 0
+        val menu = ButtonLatch { if (it) opens++ }
+        menu.update(1, true); menu.update(2, true)
+        repeat(20) { menu.update(1, true); menu.update(2, true) }
+        assertEquals(1, opens)
+        menu.update(1, false); menu.update(2, false)
+        menu.update(2, true)
+        assertEquals(2, opens)
+        menu.clear(); assertEquals(2, opens)
+    }
+    @Test fun coverAliasMatchesTheCatalogWithoutConfusingOtherEccoGames() {
+        assertEquals(CoverNames.searchKey("Ecco - The Tides of Time (USA)"), CoverNames.searchKey("Ecco - Tides of Time]"))
+        assertNotEquals(CoverNames.searchKey("Ecco the Dolphin"), CoverNames.searchKey("Ecco - Tides of Time"))
+        assertNotEquals(CoverNames.searchKey("Ecco Jr."), CoverNames.searchKey("Ecco - Tides of Time"))
+    }
+    @Test fun displayTitleCleansRegionTagsAndDanglingBrackets() {
+        assertEquals("Bomberman", CoverNames.displayTitle("Bomberman (USA) [!]]"))
+        assertEquals("Cannon Fodder", CoverNames.displayTitle("Cannon Fodder]"))
+        assertEquals("Sonic 2", CoverNames.displayTitle("Sonic 2 (Europe) [T+En]"))
+    }
     @Test fun duplicatedKeyAndHatRewindRequiresBothReleases() {
         val events = mutableListOf<Boolean>()
         val button = ButtonLatch { events += it }

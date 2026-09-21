@@ -56,7 +56,15 @@ class SettingsActivity : AppCompatActivity() {
         bind(R.id.rewGroup, if (rewindEnabled) R.id.rewOn else R.id.rewOff) { rewindEnabled = it == R.id.rewOn }
         findViewById<CheckBox>(R.id.downloadCovers).apply {
             isChecked = downloadCovers
-            setOnCheckedChangeListener { _, checked -> downloadCovers = checked }
+            setOnCheckedChangeListener { _, checked ->
+                if (!checked) downloadCovers = false
+                else if (!downloadCovers) {
+                    AlertDialog.Builder(this@SettingsActivity).setTitle(R.string.download_covers).setMessage(R.string.cover_privacy)
+                        .setPositiveButton(R.string.enable) { _, _ -> downloadCovers = true }
+                        .setNegativeButton(R.string.cancel, null)
+                        .setOnDismissListener { isChecked = downloadCovers }.show()
+                }
+            }
         }
         updateStorageInfo()
         findViewById<Button>(R.id.btnClearCovers).setOnClickListener { button ->
@@ -112,6 +120,7 @@ class SettingsActivity : AppCompatActivity() {
             fun bytes(name: String) = File(filesDir, name).walkTopDown().filter { it.isFile }.sumOf { it.length() }
             longArrayOf(bytes("roms") / 1024, (bytes("saves") + bytes("states")) / 1024, bytes("covers") / 1024, filesDir.usableSpace / 1024 / 1024)
         }
-        findViewById<TextView>(R.id.storageInfo).text = getString(R.string.storage_info, sizes[0], sizes[1], sizes[2], sizes[3], "1.6.0")
+        val version = packageManager.getPackageInfo(packageName, 0).versionName.orEmpty()
+        findViewById<TextView>(R.id.storageInfo).text = getString(R.string.storage_info, sizes[0], sizes[1], sizes[2], sizes[3], version)
     }
 }

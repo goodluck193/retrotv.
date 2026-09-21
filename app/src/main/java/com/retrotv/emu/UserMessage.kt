@@ -15,6 +15,8 @@ fun Throwable.userMessage(context: Context): String {
             "SAVE_BUSY" -> R.string.save_busy
             "CORE_MISSING" -> R.string.core_missing
             "DELETE_FAILED" -> R.string.delete_game_failed
+            "COVER_SPACE" -> R.string.cover_space
+            "COVER_INVALID" -> R.string.cover_invalid
             else -> null
         }
         if (id != null) return context.getString(id)

@@ -4,6 +4,7 @@ import android.app.ActivityManager
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.net.Uri
 import android.util.LruCache
 import com.retrotv.emu.Prefs.downloadCovers
 import kotlinx.coroutines.*
@@ -37,18 +38,19 @@ object CoverArt {
             clearMemory(); File(context.filesDir, "covers").deleteRecursively()
         } } }
     }
+    private suspend fun prepareDisk(context: Context) = maintenance.withLock {
+        if (!diskPrepared) {
+            val folder = File(context.filesDir, "covers")
+            folder.listFiles()?.filter { it.name.endsWith(".part") }?.forEach { it.delete() }
+            DiskCache.trim(folder, 56L * ResourceBudget.MIB, 510)
+            diskPrepared = true
+        }
+    }
     suspend fun load(context: Context, rom: Rom): Bitmap? = withContext(Dispatchers.IO) {
         val epoch = synchronized(guard) { generation }
         cache.get(rom.id)?.let { return@withContext it }
         try {
-            maintenance.withLock {
-                if (!diskPrepared) {
-                    val folder = File(context.filesDir, "covers")
-                    folder.listFiles()?.filter { it.name.endsWith(".part") }?.forEach { it.delete() }
-                    DiskCache.trim(folder, 56L * ResourceBudget.MIB, 510)
-                    diskPrepared = true
-                }
-            }
+            prepareDisk(context)
             locks[(rom.id.hashCode() and Int.MAX_VALUE) % locks.size].withLock {
                 cache.get(rom.id) ?: requests.withPermit {
                     ensureActive()
@@ -58,7 +60,7 @@ object CoverArt {
                     // Reserve 8 MiB for the two in-flight downloads, 4 MiB each.
                     DiskCache.trim(folder, 56L * ResourceBudget.MIB, 510)
                     val file = File(folder, rom.id + ".png")
-                    val missing = File(folder, rom.id + ".missing-v2")
+                    val missing = File(folder, rom.id + ".missing-v3")
                     if (!file.exists() && context.downloadCovers &&
                         ResourceBudget.canWrite(folder.usableSpace, 8L * ResourceBudget.MIB, ResourceBudget.COVER_RESERVE) &&
                         (!missing.exists() || System.currentTimeMillis() - missing.lastModified() > 86_400_000)) {
@@ -67,13 +69,13 @@ object CoverArt {
                             SystemType.SNES -> "Nintendo_-_Super_Nintendo_Entertainment_System"
                             SystemType.MEGADRIVE -> "Sega_-_Mega_Drive_-_Genesis"
                         }
-                        val paths = CoverIndex.candidates(context, rom).ifEmpty {
-                            listOf("Named_Boxarts/${rom.file.nameWithoutExtension}.png")
-                        }
+                        // Only public catalog paths may leave the device, never a user's raw filename.
+                        val paths = CoverIndex.candidates(context, rom)
                         for (path in paths) {
                             ensureActive()
+                            if (!context.downloadCovers) break
                             val encoded = path.split('/').joinToString("/") { URLEncoder.encode(it, "UTF-8").replace("+", "%20") }
-                            if (download("https://raw.githubusercontent.com/libretro-thumbnails/$repo/master/$encoded", file)) break
+                            if (download(context, "https://raw.githubusercontent.com/libretro-thumbnails/$repo/master/$encoded", file)) break
                         }
                         runCatching { if (!file.exists()) missing.writeText("") else missing.delete() }
                     }
@@ -88,6 +90,42 @@ object CoverArt {
         catch (_: OutOfMemoryError) { clearMemory(); null }
         catch (_: Exception) { null }
     }
+    /** Local image picker: bounded input and decoded size, using the same disk/RAM budget. */
+    suspend fun importLocal(context: Context, rom: Rom, uri: Uri) = withContext(Dispatchers.IO) {
+        prepareDisk(context)
+        locks[(rom.id.hashCode() and Int.MAX_VALUE) % locks.size].withLock {
+            requests.withPermit {
+                val folder = File(context.filesDir, "covers").apply { mkdirs() }
+                check(ResourceBudget.canWrite(folder.usableSpace, 8L * ResourceBudget.MIB, ResourceBudget.COVER_RESERVE)) { "COVER_SPACE" }
+                DiskCache.trim(folder, 56L * ResourceBudget.MIB, 510)
+                val file = File(folder, rom.id + ".png")
+                val inputFile = File(folder, rom.id + ".input.part")
+                val outputFile = File(file.path + ".part")
+                var bitmap: Bitmap? = null
+                try {
+                    val deadline = android.os.SystemClock.elapsedRealtime() + 15_000
+                    val input = context.contentResolver.openInputStream(uri) ?: error("COVER_INVALID")
+                    input.use { stream -> inputFile.outputStream().use { output ->
+                        val buffer = ByteArray(8192); var total = 0
+                        while (true) {
+                            ensureActive()
+                            check(android.os.SystemClock.elapsedRealtime() < deadline) { "COVER_INVALID" }
+                            val n = stream.read(buffer); if (n < 0) break
+                            total += n; check(total <= 4 * ResourceBudget.MIB) { "COVER_INVALID" }
+                            output.write(buffer, 0, n)
+                        }
+                    } }
+                    val decoded = decode(inputFile) ?: error("COVER_INVALID")
+                    bitmap = decoded
+                    outputFile.outputStream().use { check(decoded.compress(Bitmap.CompressFormat.PNG, 100, it)) { "COVER_INVALID" } }
+                    ensureActive()
+                    check(outputFile.renameTo(file)) { "COVER_INVALID" }
+                    File(folder, rom.id + ".missing-v3").delete()
+                    clearMemory()
+                } finally { bitmap?.recycle(); inputFile.delete(); outputFile.delete() }
+            }
+        }
+    }
     fun decode(file: File): Bitmap? {
         if (!file.exists()) return null
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
@@ -97,7 +135,8 @@ object CoverArt {
         while (bounds.outWidth / options.inSampleSize > 512 || bounds.outHeight / options.inSampleSize > 512) options.inSampleSize *= 2
         return try { BitmapFactory.decodeFile(file.path, options) } catch (_: OutOfMemoryError) { clearMemory(); null }
     }
-    private suspend fun download(url: String, file: File): Boolean {
+    private suspend fun download(context: Context, url: String, file: File): Boolean {
+        if (!context.downloadCovers) return false
         val connection = URL(url).openConnection() as HttpURLConnection
         val temp = File(file.path + ".part")
         return try {
@@ -108,6 +147,7 @@ object CoverArt {
                 val buffer = ByteArray(8192); var total = 0
                 while (true) {
                     currentCoroutineContext().ensureActive()
+                    if (!context.downloadCovers) return false
                     check(android.os.SystemClock.elapsedRealtime() < deadline)
                     val n = input.read(buffer); if (n < 0) break
                     total += n; check(total <= 4 * ResourceBudget.MIB); output.write(buffer, 0, n)

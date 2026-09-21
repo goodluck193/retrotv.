@@ -55,8 +55,8 @@
     <string name="storage">Stockage</string>
     <string name="clear_states">Supprimer les états sauvegardés</string>
     <string name="clear_covers">Vider le cache des jaquettes</string>
-    <string name="download_covers">Télécharger les jaquettes</string>
-    <string name="cover_privacy">Images facultatives de Libretro Thumbnails. Les titres sont envoyés à GitHub ; les ROM ne le sont jamais. Le cache fonctionne hors ligne.</string>
+    <string name="download_covers">Télécharger les jaquettes manquantes (internet)</string>
+    <string name="cover_privacy">Désactivé par défaut, y compris après cette mise à jour. Si activé, GitHub reçoit le chemin de l’image demandée (titre du jeu) et votre adresse IP. Les jeux et sauvegardes ne sont jamais envoyés. Les jaquettes enregistrées et locales fonctionnent hors ligne.</string>
     <string name="language">Langue</string>
     <string name="wallpaper">Bordures latérales</string>
     <string name="wallpaper_black">Noir (par défaut)</string>
@@ -68,7 +68,7 @@
     <string name="wallpaper_hint">Fonds statiques. Les proportions du jeu sont conservées.</string>
     <string name="performance_hint">Les pixels nets ou le bilinéaire simple en 720p sollicitent moins le GPU. Essayez-les en cas de ralentissement. Les fonds ne sont pas animés.</string>
     <string name="controls">Commandes DualSense</string>
-    <string name="controls_help">Stick gauche : déplacement\nCroix ← : maintenir pour revenir en arrière ; relâcher pour reprendre\nPendant le retour : stick gauche pour ajuster ; ○ pour annuler\nClic du pavé tactile : pause (sinon, Back de la TV)\nL2 / R2 : SNES L / R ; L1 / R1 fonctionnent aussi\nOptions : Start · Create : Select\nStick droit et clics des sticks : désactivés\nCertaines TV ne transmettent pas le clic du pavé tactile.</string>
+    <string name="controls_help">Stick gauche : déplacement\nCroix ↑ : menu pause · ← : maintenir pour rembobiner\nRelâcher ← : reprendre · ○ : annuler le retour\nSNES : ✕ B · ○ A · □ Y · △ X\nNES : ✕ B · ○ A · □ Turbo B · △ Turbo A\nSega : □ A · ✕ B · ○ C · △ Y\nL1/L2 : SNES L / Sega X\nR1/R2 : SNES R / Sega Z\nSega X/Y/Z : jeux à 6 boutons.\nOptions : Start · Create : Select / Sega Mode\nStick droit et clics des sticks : désactivés\nBack de la TV ouvre aussi le menu.</string>
     <string name="licenses">À propos et licences</string>
     <string name="legal_summary">Aucune ROM de jeu n’est incluse ni téléchargée. Importez uniquement des jeux que vous avez le droit d’utiliser. Les images et noms appartiennent à leurs titulaires ; aucune affiliation n’est revendiquée. Snes9x et Genesis Plus GX limitent l’usage commercial. Lisez les licences avant toute redistribution.</string>
     <string name="license_files">Textes des licences tierces</string>
@@ -105,7 +105,7 @@
     <string name="rewind_help">Maintenir croix ← : retour · Stick gauche : ajuster\nRelâcher ← : reprendre · ○ : annuler</string>
     <string name="rewind_position">Retour arrière   −%1$.1f s   %2$d / %3$d</string>
     <string name="rewind_restore_failed">Impossible de restaurer cet instant</string>
-    <string name="game_hint">Pavé tactile : menu · Maintenir croix ← : retour · Options : Start</string>
+    <string name="game_hint">Croix ↑ : menu · Maintenir ← : retour · Options : Start</string>
     <string name="diagnostics_body">%1$s\n\nRefills : manque de données audio. Xruns : ruptures de sortie.\nRetour arrière : %2$d ms, %3$d captures.\nMémoire de l’historique : %4$d / %5$d Kio.\nLe retour arrière se désactive si la mémoire manque.</string>
     <string name="saving_exit">Sauvegarde et fermeture…</string>
     <string name="save_timeout">Le délai de sauvegarde est dépassé. La sauvegarde précédente est disponible.</string>
@@ -144,4 +144,9 @@
     <string name="import_empty">Le fichier est vide</string>
     <string name="import_incomplete">La copie du fichier est incomplète. Importation annulée.</string>
     <string name="import_signature">Le fichier ne correspond pas au format de la console. Importation annulée.</string>
+    <string name="enable">Activer</string>
+    <string name="choose_cover">Choisir une jaquette depuis un fichier</string>
+    <string name="cover_saved">Jaquette enregistrée sur cet appareil.</string>
+    <string name="cover_invalid">Choisissez une image de 4 Mio maximum (PNG, JPEG ou WebP).</string>
+    <string name="cover_space">Espace libre insuffisant pour la jaquette.</string>
 </resources>

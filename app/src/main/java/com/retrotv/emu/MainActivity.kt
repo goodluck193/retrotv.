@@ -24,11 +24,29 @@ class MainActivity : AppCompatActivity() {
     private var search = ""
     private var focusedPath: String? = null
     private var refreshJob: Job? = null
+    private var coverPath: String? = null
     private val categories get() = arrayOf(getString(R.string.all_games), getString(R.string.recent), getString(R.string.favorites), "NES / Dendy", "Super Nintendo", "Sega Mega Drive")
     private val pickRom = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? -> if (uri != null) importRom(uri) }
+    private val pickCover = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        val path = coverPath; coverPath = null
+        if (uri != null && path != null) {
+            val file = java.io.File(path)
+            val system = SystemType.fromFileName(file.name)
+            if (file.isFile && system != null) lifecycleScope.launch {
+                try {
+                    CoverArt.importLocal(applicationContext, Rom(file, system), uri)
+                    toast(getString(R.string.cover_saved)); refresh()
+                } catch (e: Exception) {
+                    if (e is CancellationException) throw e
+                    toast(e.userMessage(this@MainActivity))
+                } catch (e: OutOfMemoryError) { CoverArt.clearMemory(); toast(getString(R.string.low_memory)) }
+            }
+        }
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState); setContentView(R.layout.activity_main)
         metadata = LibraryMetadata(this); category = savedInstanceState?.getInt("category") ?: 0; focusedPath = savedInstanceState?.getString("focus")
+        coverPath = savedInstanceState?.getString("cover_path")
         recycler = findViewById(R.id.gameList)
         adapter = RomAdapter(metadata, lifecycleScope, { launchGame(it) }, { showActions(it) }, { focusedPath = it.file.path })
         recycler.layoutManager = GridLayoutManager(this, 4); recycler.adapter = adapter
@@ -45,7 +63,7 @@ class MainActivity : AppCompatActivity() {
         }
         findViewById<EditText>(R.id.searchGames).doAfterTextChanged { search = it.toString(); filter() }
     }
-    override fun onSaveInstanceState(outState: Bundle) { outState.putInt("category", category); outState.putString("focus", focusedPath); super.onSaveInstanceState(outState) }
+    override fun onSaveInstanceState(outState: Bundle) { outState.putInt("category", category); outState.putString("focus", focusedPath); outState.putString("cover_path", coverPath); super.onSaveInstanceState(outState) }
     override fun onResume() { super.onResume(); launchingGame = false; recycler.adapter = adapter; refresh() }
     override fun onStop() {
         refreshJob?.cancel()
@@ -107,12 +125,13 @@ class MainActivity : AppCompatActivity() {
     }
     private fun showActions(rom: Rom) {
         val favorite = if (metadata.favorite(rom)) getString(R.string.unfavorite) else getString(R.string.favorite)
-        AlertDialog.Builder(this).setTitle(rom.title).setItems(arrayOf(getString(R.string.resume), getString(R.string.restart), favorite, getString(R.string.delete_game))) { _, index ->
+        AlertDialog.Builder(this).setTitle(rom.title).setItems(arrayOf(getString(R.string.resume), getString(R.string.restart), favorite, getString(R.string.choose_cover), getString(R.string.delete_game))) { _, index ->
             when (index) {
                 0 -> launchGame(rom)
                 1 -> AlertDialog.Builder(this).setMessage(getString(R.string.restart_body)).setPositiveButton(getString(R.string.start)) { _, _ -> launchGame(rom, false) }.setNegativeButton(getString(R.string.cancel), null).show()
                 2 -> { metadata.toggleFavorite(rom); filter() }
-                3 -> confirmDelete(rom)
+                3 -> { coverPath = rom.file.path; pickCover.launch(arrayOf("image/*")) }
+                4 -> confirmDelete(rom)
             }
         }.show()
     }

@@ -24,8 +24,9 @@ object Prefs {
         set(v) = sp(this).edit().putBoolean("audio_ll", v).apply()
 
     var Context.downloadCovers: Boolean
-        get() = sp(this).getBoolean("covers", true)
-        set(v) = sp(this).edit().putBoolean("covers", v).apply()
+        // A new key also opts existing installations out of the old default-on policy.
+        get() = sp(this).getBoolean("cover_network_opt_in_v1", false)
+        set(v) = sp(this).edit().putBoolean("cover_network_opt_in_v1", v).apply()
 
 
     var Context.renderHeight: Int

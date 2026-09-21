@@ -40,3 +40,14 @@ License notices are included and accessible. The app is for personal noncommerci
 - Repeat the audio and memory protocols in the linked investigation documents.
 
 Automated results are recorded by GitHub Actions; these hardware checks are deliberately not marked completed by CI.
+
+
+## 1.6.1 follow-up
+
+- Pause on D-pad Up, with key/HAT edge tracking and release handling in the pause dialog. D-pad Left still rewinds; the left stick still moves.
+- Translate physical face positions before LibretroDroid's literal letter conversion. Enable player-one dedicated NES turbo buttons; ignore NES shoulders. Document all NES/SNES/Sega buttons and Sega automatic three/six-button behavior.
+- Require fresh, explicit cover-network consent on both new and upgraded installs. Preserve cached images. Only public catalog filenames are allowed in requests; remove the raw-ROM-filename fallback.
+- Recognize the Ecco title variant without “The” and clean dangling title brackets. Allow bounded local-image import through the game action menu for fully offline covers.
+- Version 1.6.1, code 9, retains the preview package and signing key so it updates 1.6.0-preview in place.
+
+Device acceptance: press/release ↑ repeatedly, hold it through pause/resume, test key-only and HAT-only controllers, move the left stick up without opening a menu, verify all console buttons, cancel/accept online consent, import a small local image with networking off, and confirm old saves survive an in-place preview update.

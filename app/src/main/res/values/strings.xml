@@ -55,8 +55,8 @@
     <string name="storage">Storage</string>
     <string name="clear_states">Delete save states</string>
     <string name="clear_covers">Clear cover cache</string>
-    <string name="download_covers">Download cover art</string>
-    <string name="cover_privacy">Optional art from Libretro Thumbnails. Game titles are sent to GitHub; ROM contents are never uploaded. Cached art works offline.</string>
+    <string name="download_covers">Download missing covers (internet)</string>
+    <string name="cover_privacy">Off by default, including after this update. If enabled, GitHub receives the requested image path (game title) and your IP address. Games and saves are never uploaded. Cached and local covers work offline.</string>
     <string name="language">Language</string>
     <string name="wallpaper">Side borders</string>
     <string name="wallpaper_black">Black (default)</string>
@@ -68,7 +68,7 @@
     <string name="wallpaper_hint">Static backgrounds. The original game proportions are preserved.</string>
     <string name="performance_hint">Sharp pixels or simple bilinear at 720p use less GPU power. Try these if a game slows down. Backgrounds have no animation.</string>
     <string name="controls">DualSense controls</string>
-    <string name="controls_help">Left stick: move\nD-pad ←: hold to rewind; release to continue\nWhile rewinding: left stick adjusts the moment; ○ cancels\nTouchpad click: pause menu (TV Back is a fallback)\nL2 / R2: SNES L / R; L1 / R1 also work\nOptions: Start · Create: Select\nRight stick and stick clicks: disabled\nSome TV firmware does not forward the touchpad click.</string>
+    <string name="controls_help">Left stick: move\nD-pad ↑: pause menu · ←: hold to rewind\nRelease ←: continue · ○: cancel rewind\nSNES: ✕ B · ○ A · □ Y · △ X\nNES: ✕ B · ○ A · □ Turbo B · △ Turbo A\nSega: □ A · ✕ B · ○ C · △ Y\nL1/L2: SNES L / Sega X\nR1/R2: SNES R / Sega Z\nSega X/Y/Z work in 6-button games.\nOptions: Start · Create: Select / Sega Mode\nRight stick and stick clicks: disabled\nTV Back also opens the menu.</string>
     <string name="licenses">About and licenses</string>
     <string name="legal_summary">No game ROMs are included or downloaded. Import only games you are entitled to use. Cover art and console names belong to their respective owners; no affiliation is implied. Snes9x and Genesis Plus GX restrict commercial use. Review the included licenses before redistributing this build.</string>
     <string name="license_files">Third-party license texts</string>
@@ -105,7 +105,7 @@
     <string name="rewind_help">Hold D-pad ←: rewind · Left stick: adjust\nRelease ←: continue · ○: cancel</string>
     <string name="rewind_position">Rewind   −%1$.1f s   %2$d / %3$d</string>
     <string name="rewind_restore_failed">Could not restore this moment</string>
-    <string name="game_hint">Touchpad: menu · Hold D-pad ←: rewind · Options: Start</string>
+    <string name="game_hint">D-pad ↑: menu · Hold ←: rewind · Options: Start</string>
     <string name="diagnostics_body">%1$s\n\nRefills: audio starvation. Xruns: output underruns.\nRewind: %2$d ms, %3$d snapshots.\nHistory memory: %4$d / %5$d KiB.\nRewind turns off automatically when memory is low.</string>
     <string name="saving_exit">Saving and exiting…</string>
     <string name="save_timeout">Saving timed out. Your previous save is available.</string>
@@ -144,4 +144,9 @@
     <string name="import_empty">The file is empty</string>
     <string name="import_incomplete">The file was not copied completely. Import cancelled.</string>
     <string name="import_signature">The file does not match the selected console format. Import cancelled.</string>
+    <string name="enable">Enable</string>
+    <string name="choose_cover">Choose cover from file</string>
+    <string name="cover_saved">Cover saved on this device.</string>
+    <string name="cover_invalid">Choose a supported image up to 4 MiB (PNG, JPEG or WebP).</string>
+    <string name="cover_space">Not enough free storage for a cover.</string>
 </resources>

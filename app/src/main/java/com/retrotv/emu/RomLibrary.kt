@@ -4,7 +4,7 @@ import android.content.Context
 import java.io.File
 
 data class Rom(val file: File, val system: SystemType) {
-    val title: String get() = file.name.substringBeforeLast('.').replace(Regex("\\s*[\\(\\[].*?[\\)\\]]"), "").trim()
+    val title: String get() = CoverNames.displayTitle(file.nameWithoutExtension)
     val id: String by lazy {
         val cached = File(file.path + ".id")
         val fingerprint = "${file.length()}:${file.lastModified()}:"

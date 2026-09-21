@@ -55,8 +55,8 @@
     <string name="storage">Armazenamento</string>
     <string name="clear_states">Excluir estados salvos</string>
     <string name="clear_covers">Limpar cache de capas</string>
-    <string name="download_covers">Baixar capas</string>
-    <string name="cover_privacy">Imagens opcionais de Libretro Thumbnails. Os títulos são enviados ao GitHub; os ROMs nunca são enviados. O cache funciona sem internet.</string>
+    <string name="download_covers">Baixar capas ausentes (internet)</string>
+    <string name="cover_privacy">Desativado por padrão, inclusive após esta atualização. Ao ativar, o GitHub recebe o caminho da imagem solicitada (título do jogo) e seu endereço IP. Jogos e partidas salvas nunca são enviados. Capas salvas e locais funcionam sem internet.</string>
     <string name="language">Idioma</string>
     <string name="wallpaper">Bordas laterais</string>
     <string name="wallpaper_black">Preto (padrão)</string>
@@ -68,7 +68,7 @@
     <string name="wallpaper_hint">Fundos estáticos. As proporções originais do jogo são mantidas.</string>
     <string name="performance_hint">Pixels nítidos ou bilinear simples em 720p usam menos GPU. Experimente se o jogo ficar lento. Os fundos não têm animação.</string>
     <string name="controls">Controles DualSense</string>
-    <string name="controls_help">Analógico esquerdo: mover\nDirecional ←: segure para retroceder; solte para continuar\nNo retrocesso: analógico esquerdo ajusta o momento; ○ cancela\nClique no touchpad: pausa (alternativa: Back da TV)\nL2 / R2: SNES L / R; L1 / R1 também funcionam\nOptions: Start · Create: Select\nAnalógico direito e cliques dos analógicos: desativados\nAlgumas TVs não transmitem o clique do touchpad.</string>
+    <string name="controls_help">Analógico esquerdo: mover\nDirecional ↑: menu de pausa · ←: segurar para retroceder\nSoltar ←: continuar · ○: cancelar retrocesso\nSNES: ✕ B · ○ A · □ Y · △ X\nNES: ✕ B · ○ A · □ Turbo B · △ Turbo A\nSega: □ A · ✕ B · ○ C · △ Y\nL1/L2: SNES L / Sega X\nR1/R2: SNES R / Sega Z\nSega X/Y/Z: jogos de 6 botões.\nOptions: Start · Create: Select / Sega Mode\nAnalógico direito e cliques dos analógicos: desativados\nBack da TV também abre o menu.</string>
     <string name="licenses">Sobre e licenças</string>
     <string name="legal_summary">Nenhum ROM de jogo é incluído ou baixado. Importe apenas jogos que você tenha direito de usar. Capas e nomes pertencem aos respectivos titulares; não há vínculo implícito. Snes9x e Genesis Plus GX restringem o uso comercial. Leia as licenças antes de redistribuir esta versão.</string>
     <string name="license_files">Textos das licenças de terceiros</string>
@@ -105,7 +105,7 @@
     <string name="rewind_help">Segurar direcional ←: retroceder · Analógico esquerdo: ajustar\nSoltar ←: continuar · ○: cancelar</string>
     <string name="rewind_position">Retrocesso   −%1$.1f s   %2$d / %3$d</string>
     <string name="rewind_restore_failed">Não foi possível restaurar este momento</string>
-    <string name="game_hint">Touchpad: menu · Segurar direcional ←: retroceder · Options: Start</string>
+    <string name="game_hint">Direcional ↑: menu · Segurar ←: retroceder · Options: Start</string>
     <string name="diagnostics_body">%1$s\n\nRefills: falta de dados de áudio. Xruns: falhas de saída.\nRetrocesso: %2$d ms, %3$d capturas.\nMemória do histórico: %4$d / %5$d KiB.\nO retrocesso é desativado quando há pouca memória.</string>
     <string name="saving_exit">Salvando e saindo…</string>
     <string name="save_timeout">O tempo para salvar esgotou. O jogo salvo anterior está disponível.</string>
@@ -144,4 +144,9 @@
     <string name="import_empty">O arquivo está vazio</string>
     <string name="import_incomplete">O arquivo não foi copiado por completo. Importação cancelada.</string>
     <string name="import_signature">O arquivo não corresponde ao formato do console. Importação cancelada.</string>
+    <string name="enable">Ativar</string>
+    <string name="choose_cover">Escolher capa de um arquivo</string>
+    <string name="cover_saved">Capa salva neste dispositivo.</string>
+    <string name="cover_invalid">Escolha uma imagem de até 4 MiB (PNG, JPEG ou WebP).</string>
+    <string name="cover_space">Espaço livre insuficiente para a capa.</string>
 </resources>
