@@ -12,7 +12,7 @@
     <string name="load_state">Charger</string>
     <string name="filter">Filtre d’image</string>
     <string name="filter_fmt">Filtre : %1$s</string>
-    <string name="exit_to_menu">Sauvegarder et revenir à la bibliothèque</string>
+    <string name="exit_to_menu">Retour à la bibliothèque</string>
     <string name="saved">Sauvegardé</string>
     <string name="loaded">Chargé</string>
     <string name="no_save">Aucune sauvegarde</string>
@@ -25,7 +25,6 @@
     <string name="restart">Recommencer</string>
     <string name="library">Bibliothèque</string>
     <string name="exit_app">Quitter</string>
-    <string name="save_exit_app">Sauvegarder et quitter l’application</string>
     <string name="all_games">Tous les jeux</string>
     <string name="recent">Récents</string>
     <string name="favorites">Favoris</string>
@@ -65,7 +64,7 @@
     <string name="wallpaper_dunes">Dunes</string>
     <string name="wallpaper_forest">Forêt</string>
     <string name="wallpaper_arcade">Arcade</string>
-    <string name="wallpaper_hint">Fonds statiques. Les proportions du jeu sont conservées.</string>
+    <string name="wallpaper_hint">Motifs statiques répétés. Les proportions du motif et du jeu sont conservées.</string>
     <string name="performance_hint">Les pixels nets ou le bilinéaire simple en 720p sollicitent moins le GPU. Essayez-les en cas de ralentissement. Les fonds ne sont pas animés.</string>
     <string name="controls">Commandes DualSense</string>
     <string name="controls_help">Stick gauche : déplacement\nCroix ↑ : menu pause · ← : maintenir pour rembobiner\nRelâcher ← : reprendre · ○ : annuler le retour\nSNES : ✕ B · ○ A · □ Y · △ X\nNES : ✕ B · ○ A · □ Turbo B · △ Turbo A\nSega : □ A · ✕ B · ○ C · △ Y\nL1/L2 : SNES L / Sega X\nR1/R2 : SNES R / Sega Z\nSega X/Y/Z : jeux à 6 boutons.\nOptions : Start · Create : Select / Sega Mode\nStick droit et clics des sticks : désactivés\nBack de la TV ouvre aussi le menu.</string>
@@ -107,8 +106,6 @@
     <string name="rewind_restore_failed">Impossible de restaurer cet instant</string>
     <string name="game_hint">Croix ↑ : menu · Maintenir ← : retour · Options : Start</string>
     <string name="diagnostics_body">%1$s\n\nRefills : manque de données audio. Xruns : ruptures de sortie.\nRetour arrière : %2$d ms, %3$d captures.\nMémoire de l’historique : %4$d / %5$d Kio.\nLe retour arrière se désactive si la mémoire manque.</string>
-    <string name="saving_exit">Sauvegarde et fermeture…</string>
-    <string name="save_timeout">Le délai de sauvegarde est dépassé. La sauvegarde précédente est disponible.</string>
     <string name="controller_disconnected">Manette déconnectée. Jeu en pause.</string>
     <string name="library_failed">Erreur de bibliothèque : %1$s</string>
     <string name="no_matches">Aucun jeu trouvé. Modifiez la recherche ou la catégorie.</string>

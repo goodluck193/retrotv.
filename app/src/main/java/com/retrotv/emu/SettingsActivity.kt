@@ -39,7 +39,7 @@ class SettingsActivity : AppCompatActivity() {
         val wallpaperButton = findViewById<Button>(R.id.btnWallpaper)
         fun showWallpaper() {
             wallpaperButton.text = getString(R.string.wallpaper) + " · " + wallpaperNames[wallpapers.indexOf(sidebarTheme).coerceAtLeast(0)]
-            preview.background = SidebarDrawable(sidebarTheme)
+            preview.background = SidebarDrawable(this@SettingsActivity, sidebarTheme)
         }
         showWallpaper()
         wallpaperButton.setOnClickListener {

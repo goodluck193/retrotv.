@@ -81,7 +81,7 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         super.onCreate(savedInstanceState)
         @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-        root = FrameLayout(this).apply { background = SidebarDrawable(sidebarTheme) }
+        root = FrameLayout(this).apply { background = SidebarDrawable(this@GameActivity, sidebarTheme) }
         setContentView(root)
         root.addView(TextView(this).apply { text = getString(R.string.loading_game); gravity = Gravity.CENTER }, FrameLayout.LayoutParams(-1, -1))
         metadata = LibraryMetadata(this)
@@ -435,7 +435,7 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
     private fun showPauseMenu() {
         if (menuShowing || !ready || protectingSave || exiting) return
         if (rewinding) finishRewind(false, false)
-        menuShowing = true; pausePlayer(); capturePreview(0)
+        menuShowing = true; pausePlayer()
         val content = layoutInflater.inflate(R.layout.dialog_pause, null)
         val dialog = object : AlertDialog(this, R.style.PauseDialog) {
             override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
@@ -456,9 +456,8 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
             AlertDialog.Builder(this).setTitle(getString(R.string.audio_info)).setMessage(getString(R.string.diagnostics_body, audioInfo, rewindStep, history.size, history.bytes / 1024, rewindBudget / 1024))
                 .setPositiveButton(getString(R.string.close), null).show()
         }
-        fun exitGame(closeApp: Boolean = false) { dialog.setOnDismissListener(null); dialog.dismiss(); requestExit(closeApp) }
+        fun exitGame() { dialog.setOnDismissListener(null); dialog.dismiss(); returnToLibrary() }
         content.findViewById<Button>(R.id.btnExit).setOnClickListener { exitGame() }
-        content.findViewById<Button>(R.id.btnExitApp).setOnClickListener { exitGame(true) }
         dialog.setOnKeyListener { _, code, event ->
             if (code == KeyEvent.KEYCODE_DPAD_UP) menuButton.update(1, event.action == KeyEvent.ACTION_DOWN)
             if (event.scanCode == 318 || code == KeyEvent.KEYCODE_BUTTON_THUMBR || code == KeyEvent.KEYCODE_BUTTON_THUMBL) true
@@ -471,22 +470,12 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         dialog.setOnDismissListener { menuShowing = false; rewindButton.clear(); if (!protectingSave) resumePlayer() }
         dialog.show(); content.findViewById<Button>(R.id.btnResume).requestFocus()
     }
-    private fun requestExit(closeApp: Boolean) {
+    private fun returnToLibrary() {
         if (exiting) return
+        // Set before finish/onStop: returning to the library must not create an autosave.
+        // Previously queued/manual saves are allowed to finish atomically in SaveWriter.
         exiting = true; checkpointJob?.cancel(); pausePlayer(); clearHistory(); CoverArt.clearMemory()
-        val progress = AlertDialog.Builder(this).setMessage(getString(R.string.saving_exit)).setCancelable(false).show()
-        lifecycleScope.launch {
-            try {
-                val result = withTimeoutOrNull(3000) {
-                    SaveWriter.flush()
-                    if (!protectingSave) saveAutomatically()?.await() else true
-                }
-                if (result == null) toast(getString(R.string.save_timeout))
-            } finally {
-                progress.dismiss()
-                if (closeApp) AppExit.finish(this@GameActivity) else finish()
-            }
-        }
+        finish()
     }
     private fun fitGameSurface() {
         val view = retroView ?: return

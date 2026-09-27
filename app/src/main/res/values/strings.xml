@@ -12,7 +12,7 @@
     <string name="load_state">Load game</string>
     <string name="filter">Picture filter</string>
     <string name="filter_fmt">Filter: %1$s</string>
-    <string name="exit_to_menu">Save and return to library</string>
+    <string name="exit_to_menu">Return to library</string>
     <string name="saved">Saved</string>
     <string name="loaded">Loaded</string>
     <string name="no_save">No save yet</string>
@@ -25,7 +25,6 @@
     <string name="restart">Start again</string>
     <string name="library">Library</string>
     <string name="exit_app">Exit</string>
-    <string name="save_exit_app">Save and exit application</string>
     <string name="all_games">All games</string>
     <string name="recent">Recent</string>
     <string name="favorites">Favorites</string>
@@ -65,7 +64,7 @@
     <string name="wallpaper_dunes">Dunes</string>
     <string name="wallpaper_forest">Forest</string>
     <string name="wallpaper_arcade">Arcade</string>
-    <string name="wallpaper_hint">Static backgrounds. The original game proportions are preserved.</string>
+    <string name="wallpaper_hint">Repeating static patterns. The pattern and game keep their original proportions.</string>
     <string name="performance_hint">Sharp pixels or simple bilinear at 720p use less GPU power. Try these if a game slows down. Backgrounds have no animation.</string>
     <string name="controls">DualSense controls</string>
     <string name="controls_help">Left stick: move\nD-pad ↑: pause menu · ←: hold to rewind\nRelease ←: continue · ○: cancel rewind\nSNES: ✕ B · ○ A · □ Y · △ X\nNES: ✕ B · ○ A · □ Turbo B · △ Turbo A\nSega: □ A · ✕ B · ○ C · △ Y\nL1/L2: SNES L / Sega X\nR1/R2: SNES R / Sega Z\nSega X/Y/Z work in 6-button games.\nOptions: Start · Create: Select / Sega Mode\nRight stick and stick clicks: disabled\nTV Back also opens the menu.</string>
@@ -107,8 +106,6 @@
     <string name="rewind_restore_failed">Could not restore this moment</string>
     <string name="game_hint">D-pad ↑: menu · Hold ←: rewind · Options: Start</string>
     <string name="diagnostics_body">%1$s\n\nRefills: audio starvation. Xruns: output underruns.\nRewind: %2$d ms, %3$d snapshots.\nHistory memory: %4$d / %5$d KiB.\nRewind turns off automatically when memory is low.</string>
-    <string name="saving_exit">Saving and exiting…</string>
-    <string name="save_timeout">Saving timed out. Your previous save is available.</string>
     <string name="controller_disconnected">Controller disconnected. Game paused.</string>
     <string name="library_failed">Library error: %1$s</string>
     <string name="no_matches">No games found. Change your search or category.</string>

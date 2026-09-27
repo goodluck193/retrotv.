@@ -12,7 +12,7 @@
     <string name="load_state">Spiel laden</string>
     <string name="filter">Bildfilter</string>
     <string name="filter_fmt">Filter: %1$s</string>
-    <string name="exit_to_menu">Speichern und zur Bibliothek</string>
+    <string name="exit_to_menu">Zur Bibliothek zurückkehren</string>
     <string name="saved">Gespeichert</string>
     <string name="loaded">Geladen</string>
     <string name="no_save">Noch kein Spielstand</string>
@@ -25,7 +25,6 @@
     <string name="restart">Neu beginnen</string>
     <string name="library">Bibliothek</string>
     <string name="exit_app">Beenden</string>
-    <string name="save_exit_app">Speichern und App beenden</string>
     <string name="all_games">Alle Spiele</string>
     <string name="recent">Zuletzt gespielt</string>
     <string name="favorites">Favoriten</string>
@@ -65,7 +64,7 @@
     <string name="wallpaper_dunes">Dünen</string>
     <string name="wallpaper_forest">Wald</string>
     <string name="wallpaper_arcade">Arcade</string>
-    <string name="wallpaper_hint">Statische Hintergründe. Die ursprünglichen Spielproportionen bleiben erhalten.</string>
+    <string name="wallpaper_hint">Wiederholte statische Muster. Die Proportionen von Muster und Spiel bleiben erhalten.</string>
     <string name="performance_hint">Scharfe Pixel oder einfaches bilineares Filtern bei 720p belasten die GPU weniger. Probiere sie bei ruckelnden Spielen. Die Hintergründe sind unbewegt.</string>
     <string name="controls">DualSense-Steuerung</string>
     <string name="controls_help">Linker Stick: bewegen\nSteuerkreuz ↑: Pausenmenü · ←: zum Rückspulen halten\n← loslassen: fortsetzen · ○: Rückspulen abbrechen\nSNES: ✕ B · ○ A · □ Y · △ X\nNES: ✕ B · ○ A · □ Turbo B · △ Turbo A\nSega: □ A · ✕ B · ○ C · △ Y\nL1/L2: SNES L / Sega X\nR1/R2: SNES R / Sega Z\nSega X/Y/Z: Spiele mit 6 Tasten.\nOptions: Start · Create: Select / Sega Mode\nRechter Stick und Stick-Klicks: deaktiviert\nTV-Back öffnet ebenfalls das Menü.</string>
@@ -107,8 +106,6 @@
     <string name="rewind_restore_failed">Dieser Moment konnte nicht wiederhergestellt werden</string>
     <string name="game_hint">Steuerkreuz ↑: Menü · ← halten: zurück · Options: Start</string>
     <string name="diagnostics_body">%1$s\n\nRefills: fehlende Audiodaten. Xruns: Ausgabefehler.\nRückspulen: %2$d ms, %3$d Zustände.\nVerlaufsspeicher: %4$d / %5$d KiB.\nBei Speichermangel wird das Rückspulen deaktiviert.</string>
-    <string name="saving_exit">Speichern und beenden…</string>
-    <string name="save_timeout">Zeitlimit beim Speichern erreicht. Der vorherige Spielstand ist verfügbar.</string>
     <string name="controller_disconnected">Controller getrennt. Spiel pausiert.</string>
     <string name="library_failed">Bibliotheksfehler: %1$s</string>
     <string name="no_matches">Keine Spiele gefunden. Ändere die Suche oder Kategorie.</string>

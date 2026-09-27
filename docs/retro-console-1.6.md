@@ -51,3 +51,13 @@ Automated results are recorded by GitHub Actions; these hardware checks are deli
 - Version 1.6.1, code 9, retains the preview package and signing key so it updates 1.6.0-preview in place.
 
 Device acceptance: press/release ↑ repeatedly, hold it through pause/resume, test key-only and HAT-only controllers, move the left stick up without opening a menu, verify all console buttons, cancel/accept online consent, import a small local image with networking off, and confirm old saves survive an in-place preview update.
+
+
+## 1.6.2 follow-up
+
+- Replace whole-screen scenery with five small, repeating 120 dp square vector tiles. No anisotropic scaling: the settings strip and game sidebars share the same pattern size. Black remains the default. Android may cache a single tile; no full-screen wallpaper bitmap or animation loop is used.
+- Replace the two save-and-exit actions with Return to library. Set the exit flag before finish(), cancel checkpoints, pause the core and clear history. The existing onStop guard skips autosaving on this route; remote Back in pause uses the same route. Opening pause no longer writes an autosave thumbnail. Prior periodic/manual writes may finish, and previously saved progress is retained.
+- Keep manual saves, 30-second in-game autosaving and ordinary background saving. The library still has its own Exit action.
+- Launcher label and displayed version: Retro Console / 1.6.2, code 10. Retain the installed package ID and signing key for updates with existing games and saves.
+
+Device acceptance: compare Forest in the settings strip and both tall sidebars; shapes must remain undistorted and repeat vertically. Check the five patterns and black. Enter pause and return before the next periodic autosave, then compare slot 0 before/after; neither opening pause nor returning should write a state or preview. Check remote Back takes the same path. Verify the launcher label after updating from 1.6.1-preview.

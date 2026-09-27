@@ -12,7 +12,7 @@
     <string name="load_state">Carica partita</string>
     <string name="filter">Filtro immagine</string>
     <string name="filter_fmt">Filtro: %1$s</string>
-    <string name="exit_to_menu">Salva e torna alla libreria</string>
+    <string name="exit_to_menu">Torna alla libreria</string>
     <string name="saved">Salvato</string>
     <string name="loaded">Caricato</string>
     <string name="no_save">Nessun salvataggio</string>
@@ -25,7 +25,6 @@
     <string name="restart">Ricomincia</string>
     <string name="library">Libreria</string>
     <string name="exit_app">Esci</string>
-    <string name="save_exit_app">Salva ed esci dall’app</string>
     <string name="all_games">Tutti i giochi</string>
     <string name="recent">Recenti</string>
     <string name="favorites">Preferiti</string>
@@ -65,7 +64,7 @@
     <string name="wallpaper_dunes">Dune</string>
     <string name="wallpaper_forest">Foresta</string>
     <string name="wallpaper_arcade">Arcade</string>
-    <string name="wallpaper_hint">Sfondi statici. Le proporzioni originali del gioco vengono mantenute.</string>
+    <string name="wallpaper_hint">Motivi statici ripetuti. Le proporzioni del motivo e del gioco vengono mantenute.</string>
     <string name="performance_hint">Pixel nitidi o bilineare semplice a 720p riducono il carico GPU. Provali se il gioco rallenta. Gli sfondi non sono animati.</string>
     <string name="controls">Comandi DualSense</string>
     <string name="controls_help">Stick sinistro: movimento\nCroce ↑: menu pausa · ←: tieni premuto per riavvolgere\nRilascia ←: continua · ○: annulla riavvolgimento\nSNES: ✕ B · ○ A · □ Y · △ X\nNES: ✕ B · ○ A · □ Turbo B · △ Turbo A\nSega: □ A · ✕ B · ○ C · △ Y\nL1/L2: SNES L / Sega X\nR1/R2: SNES R / Sega Z\nSega X/Y/Z: giochi a 6 pulsanti.\nOptions: Start · Create: Select / Sega Mode\nStick destro e clic degli stick: disattivati\nBack della TV apre anche il menu.</string>
@@ -107,8 +106,6 @@
     <string name="rewind_restore_failed">Impossibile ripristinare questo momento</string>
     <string name="game_hint">Croce ↑: menu · Tieni premuto ←: riavvolgi · Options: Start</string>
     <string name="diagnostics_body">%1$s\n\nRefills: dati audio insufficienti. Xruns: interruzioni in uscita.\nRiavvolgimento: %2$d ms, %3$d istantanee.\nMemoria cronologia: %4$d / %5$d KiB.\nIl riavvolgimento si disattiva quando la memoria è scarsa.</string>
-    <string name="saving_exit">Salvataggio e uscita…</string>
-    <string name="save_timeout">Tempo di salvataggio scaduto. Il salvataggio precedente è disponibile.</string>
     <string name="controller_disconnected">Controller scollegato. Gioco in pausa.</string>
     <string name="library_failed">Errore della libreria: %1$s</string>
     <string name="no_matches">Nessun gioco trovato. Cambia ricerca o categoria.</string>

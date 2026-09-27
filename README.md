@@ -1,4 +1,4 @@
-# Retro Console 1.6.1
+# Retro Console 1.6.2
 
 A personal, noncommercial retro gaming app for Android TV 8+. Play your own NES / Dendy, Super Nintendo and Sega Mega Drive files with a DualSense controller. ARM 32-bit and 64-bit builds. **No games or game ROM downloads are included.**
 
@@ -6,7 +6,7 @@ A personal, noncommercial retro gaming app for Android TV 8+. Play your own NES 
 
 - A simpler library: select a game to resume its autosave. Hold ✕ / OK for favorites, restart or deletion. Search, recent games and console categories remain available.
 - DualSense controls tailored to left-stick play, with preview rewind on D-pad Left and pause on D-pad Up (key and HAT-axis events).
-- Black side borders by default, plus five static backgrounds: Midnight, Quiet Grid, Dunes, Forest and Arcade. Game proportions are preserved. Backgrounds allocate no image cache and run no animation loop.
+- Black side borders by default, plus five static backgrounds: Midnight, Quiet Grid, Dunes, Forest and Arcade. Game proportions are preserved. Each background repeats one small square vector tile at a fixed 120 dp size. Settings and gameplay use the same scale, with no stretching or animation.
 - English by default; Russian, Spanish, Portuguese, French, German and Italian selectable in Settings. All application messages are translated.
 - Better cover matching across regional names and punctuation, including Desert Demolition. A bundled filename index avoids online catalog searches on the TV. Images are optional, downloaded on demand and cached with fixed limits.
 - An original app icon and TV launcher banner. A lightweight bilinear smoothing option; sharp pixels and 720p remain the default.
@@ -26,7 +26,7 @@ A personal, noncommercial retro gaming app for Android TV 8+. Play your own NES 
 | Release D-pad ← | Continue from the selected moment |
 | ○ or Back while rewinding | Cancel and return to the original moment |
 | Right stick, R3, L3 | Disabled |
-| TV remote Back | Pause; from the pause menu, save and return to the library |
+| TV remote Back | Pause; from the pause menu, return to the library without making a new save |
 | ○ in the pause menu | Resume |
 
 The D-pad is reserved during gameplay because this profile uses the left stick for movement. D-pad navigation still works in menus. Touchpad swipes do nothing. The PS logo button is controlled by Android; it is not the touchpad click.
@@ -50,13 +50,13 @@ Mappings checked against [FCEUmm](https://docs.libretro.com/library/fceumm/#joyp
 
 ## Saves, audio and resource limits
 
-Autosave every 30 seconds and on leaving the game; three manual slots with timestamps and thumbnails. Cartridge SRAM is separate. Saves use checksums, atomic writes and a previous good backup. A changed core fingerprint is rejected instead of silently loading an incompatible state. Removing a game keeps its progress by default; reimporting the same content finds it by SHA-256.
+Autosave every 30 seconds during play and when the app is sent to the background; three manual slots with timestamps and thumbnails. **Return to library** does not create a new save and suppresses the usual onStop autosave. Previously completed or already queued saves are kept; the command does not roll back earlier autosaves. Cartridge SRAM is separate. Saves use checksums, atomic writes and a previous good backup. A changed core fingerprint is rejected instead of silently loading an incompatible state. Removing a game keeps its progress by default; reimporting the same content finds it by SHA-256.
 
 Rewind captures every 500 ms, or 1 second on slow devices. At most 120 snapshots, including previews, fit within 1/16 of the Java heap and 24 MiB (6 MiB on low-RAM devices). Under memory pressure, history is cleared and disabled until the next launch. The core is paused during preview; the chosen state is applied only on release.
 
 The audio pipeline uses continuous fractional resampling, a bounded PCM queue, rebuffering and a monotonic game clock. Compatible OpenSL ES audio defaults to a 100 ms app buffer; optional low latency uses 40 ms. This is buffering, not total output latency. Short scheduling gaps are absorbed; sustained insufficient CPU performance can still cause pauses.
 
-Pause stops emulation/audio and allows the TV screensaver. **Save and exit application** closes the Android task after a bounded save wait. It does not turn off the physical TV. Android may keep a stopped process cached and reclaim it when needed. No force-kill or forced garbage collection is used.
+Pause stops emulation/audio and allows the TV screensaver. The game menu contains one **Return to library** action; it pauses the core, clears rewind history and finishes the game activity without saving. The separate **Exit** button in the main library closes the Android task after a bounded wait for already queued writes. It does not turn off the physical TV. Android may keep a stopped process cached and reclaim it when needed. No force-kill or forced garbage collection is used.
 
 [Audio investigation](docs/audio-investigation.md) · [Memory and exit](docs/memory-and-exit.md) · [1.6 implementation and TV checks](docs/retro-console-1.6.md)
 
@@ -87,7 +87,7 @@ python3 scripts/audit_apk.py app/build/outputs/apk/preview/app-preview.apk
 
 Prepare the engine and cores before opening Android Studio. Engine patches live in `engine/libretrodroid.patch`; native audio/clock code in `native/`; exact core sources in `engine/cores.lock.json`. `scripts/update_cover_index.py` refreshes filename metadata during development; it never runs on the TV. Source trees for the current index are recorded in `engine/cover-sources.json`.
 
-The normal debug package remains `com.retrotv.emu` to preserve data compatibility when signed with your existing key. The standalone **Retro Console Preview** uses `com.retrotv.emu.preview.console`, with its own library and saves. It can coexist with earlier RetroTV installations. Add your game files again to test it. **Do not uninstall an older app to resolve a signing conflict: uninstalling deletes its private games and progress.**
+The normal debug package remains `com.retrotv.emu` to preserve data compatibility when signed with your existing key. The installable **Retro Console** uses `com.retrotv.emu.preview.console`, with its own library and saves. Version 1.6.2 removes Preview from the launcher label and visible version while keeping the package ID and signature. It updates 1.6.0/1.6.1-preview in place and preserves their games and saves. The internal preview build-type/package names remain only for compatibility. It can coexist with older RetroTV installations, whose private data is separate. **Do not uninstall an older app to resolve a signing conflict: uninstalling deletes its private games and progress.**
 
 Preview 1.6 introduces a consistent, deliberately public **test-only** key at `config/preview-test.keystore` (alias `androiddebugkey`, password `android`). Future previews can update this package with the same signature. This is not a production identity; anyone with the public key material can sign a preview build, so install only builds you trust. A release must use your own private signing key. Earlier CI-generated private debug keys are unavailable, so 1.6 cannot update those preview packages in place or read their private saves.
 

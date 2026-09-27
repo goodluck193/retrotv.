@@ -12,7 +12,7 @@
     <string name="load_state">Carregar jogo</string>
     <string name="filter">Filtro de imagem</string>
     <string name="filter_fmt">Filtro: %1$s</string>
-    <string name="exit_to_menu">Salvar e voltar à biblioteca</string>
+    <string name="exit_to_menu">Voltar à biblioteca</string>
     <string name="saved">Salvo</string>
     <string name="loaded">Carregado</string>
     <string name="no_save">Ainda não há jogo salvo</string>
@@ -25,7 +25,6 @@
     <string name="restart">Recomeçar</string>
     <string name="library">Biblioteca</string>
     <string name="exit_app">Sair</string>
-    <string name="save_exit_app">Salvar e sair do aplicativo</string>
     <string name="all_games">Todos os jogos</string>
     <string name="recent">Recentes</string>
     <string name="favorites">Favoritos</string>
@@ -65,7 +64,7 @@
     <string name="wallpaper_dunes">Dunas</string>
     <string name="wallpaper_forest">Floresta</string>
     <string name="wallpaper_arcade">Arcade</string>
-    <string name="wallpaper_hint">Fundos estáticos. As proporções originais do jogo são mantidas.</string>
+    <string name="wallpaper_hint">Padrões estáticos repetidos. As proporções do padrão e do jogo são mantidas.</string>
     <string name="performance_hint">Pixels nítidos ou bilinear simples em 720p usam menos GPU. Experimente se o jogo ficar lento. Os fundos não têm animação.</string>
     <string name="controls">Controles DualSense</string>
     <string name="controls_help">Analógico esquerdo: mover\nDirecional ↑: menu de pausa · ←: segurar para retroceder\nSoltar ←: continuar · ○: cancelar retrocesso\nSNES: ✕ B · ○ A · □ Y · △ X\nNES: ✕ B · ○ A · □ Turbo B · △ Turbo A\nSega: □ A · ✕ B · ○ C · △ Y\nL1/L2: SNES L / Sega X\nR1/R2: SNES R / Sega Z\nSega X/Y/Z: jogos de 6 botões.\nOptions: Start · Create: Select / Sega Mode\nAnalógico direito e cliques dos analógicos: desativados\nBack da TV também abre o menu.</string>
@@ -107,8 +106,6 @@
     <string name="rewind_restore_failed">Não foi possível restaurar este momento</string>
     <string name="game_hint">Direcional ↑: menu · Segurar ←: retroceder · Options: Start</string>
     <string name="diagnostics_body">%1$s\n\nRefills: falta de dados de áudio. Xruns: falhas de saída.\nRetrocesso: %2$d ms, %3$d capturas.\nMemória do histórico: %4$d / %5$d KiB.\nO retrocesso é desativado quando há pouca memória.</string>
-    <string name="saving_exit">Salvando e saindo…</string>
-    <string name="save_timeout">O tempo para salvar esgotou. O jogo salvo anterior está disponível.</string>
     <string name="controller_disconnected">Controle desconectado. Jogo pausado.</string>
     <string name="library_failed">Erro na biblioteca: %1$s</string>
     <string name="no_matches">Nenhum jogo encontrado. Altere a busca ou a categoria.</string>

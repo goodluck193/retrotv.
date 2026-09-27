@@ -12,8 +12,8 @@ android {
         manifestPlaceholders["appLabel"] = "@string/app_name"
         minSdk = 26          // Android 8.0+
         targetSdk = 34
-        versionCode = 9
-        versionName = "1.6.1"
+        versionCode = 10
+        versionName = "1.6.2"
         ndk {
             // Both 32-bit and 64-bit TV chipsets.
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
@@ -34,9 +34,8 @@ android {
         create("preview") {
             initWith(getByName("debug"))
             applicationIdSuffix = ".preview.console"
-            versionNameSuffix = "-preview"
             signingConfig = signingConfigs.getByName("previewTest")
-            manifestPlaceholders["appLabel"] = "Retro Console Preview"
+            manifestPlaceholders["appLabel"] = "Retro Console"
             matchingFallbacks += listOf("debug")
         }
         release {
