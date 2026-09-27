@@ -61,3 +61,15 @@ Device acceptance: press/release ↑ repeatedly, hold it through pause/resume, t
 - Launcher label and displayed version: Retro Console / 1.6.2, code 10. Retain the installed package ID and signing key for updates with existing games and saves.
 
 Device acceptance: compare Forest in the settings strip and both tall sidebars; shapes must remain undistorted and repeat vertically. Check the five patterns and black. Enter pause and return before the next periodic autosave, then compare slot 0 before/after; neither opening pause nor returning should write a state or preview. Check remote Back takes the same path. Verify the launcher label after updating from 1.6.1-preview.
+
+
+## 1.6.3 rewind and memory follow-up
+
+- Query state size without allocation; evict oldest history before taking a new snapshot. Check current heap/system headroom including transient copies before snapshots, entering rewind and committing a chosen state. Existing 24/6 MiB history limits and fixed count remain unchanged.
+- Guard JNI read-only arrays: reject invalid sizes and null allocation results, preserve pending JVM errors and release successful acquisitions even when the core throws.
+- Treat rejected/failed rewind restores as a transaction: release optional history, restore the origin, and close without saving if recovery fails. Catch injected allocation errors and release the origin reference in finally. Cancel leaves the original core state untouched.
+- Version 1.6.3, code 11; same package, signing key and emulator-core fingerprints.
+
+Automated gates cover 100000 history/branch/clear operations, byte and entry ceilings, preview lifetime, low-memory preflight, partial state rejection, OOM/recovery failure and 30000 JNI buffer lifetime cycles under address/undefined sanitizers. See CI for completed results.
+
+Physical acceptance remains necessary: hold/release/cancel rewind repeatedly on NES, SNES and Sega; reach the oldest frame; disconnect DualSense while previewing; press Home and resume; leave via Return to library; monitor memory during one hour of play and 30 game changes. These are not claimed as executed by unit tests.

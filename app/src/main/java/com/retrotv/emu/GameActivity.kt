@@ -47,6 +47,7 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
     private var captureBusy = false
     private var generation = 0
     private val memoryManager by lazy { getSystemService(ACTIVITY_SERVICE) as ActivityManager }
+    private val memoryInfo = ActivityManager.MemoryInfo()
     private val rewindBudget by lazy { ResourceBudget.rewind(Runtime.getRuntime().maxMemory(), memoryManager.isLowRamDevice) }
     private val history by lazy { RewindHistory<Bitmap>(rewindBudget, 120) { it.recycle() } }
     private var memoryLimited = false
@@ -166,13 +167,8 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         super.onPostResume()
         memoryJob?.cancel()
         memoryJob = lifecycleScope.launch {
-            val info = ActivityManager.MemoryInfo()
             while (isActive) {
-                memoryManager.getMemoryInfo(info)
-                val runtime = Runtime.getRuntime()
-                val spare = runtime.maxMemory() - runtime.totalMemory() + runtime.freeMemory()
-                if (info.lowMemory || info.availMem < maxOf(info.threshold, 64L * ResourceBudget.MIB) ||
-                    spare < maxOf(16L * ResourceBudget.MIB, runtime.maxMemory() / 8)) limitMemory()
+                if (!hasMemory()) limitMemory()
                 delay(2000)
             }
         }
@@ -200,6 +196,13 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         else if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) limitMemory()
     }
     override fun onLowMemory() { super.onLowMemory(); limitMemory() }
+    private fun hasMemory(extra: Long = 0): Boolean {
+        memoryManager.getMemoryInfo(memoryInfo)
+        val runtime = Runtime.getRuntime()
+        return ResourceBudget.canAllocate(runtime.maxMemory(),
+            runtime.maxMemory() - runtime.totalMemory() + runtime.freeMemory(),
+            memoryInfo.availMem, memoryInfo.threshold, memoryInfo.lowMemory, extra)
+    }
     private fun limitMemory() {
         if (rewinding) finishRewind(false)
         clearHistory(); CoverArt.clearMemory()
@@ -260,19 +263,29 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
                 val auto = playTime - lastAuto >= 30_000 && SaveWriter.isIdle()
                 val snapshot = rewindEnabled && !memoryLimited && playTime - lastSnapshot >= rewindStep
                 if (!auto && !snapshot) continue
+                // Failed/low-memory attempts must not become a 100 ms retry loop.
+                if (auto) lastAuto = playTime
+                if (snapshot) lastSnapshot = playTime
                 try {
+                    val stateBytes = LibretroDroid.stateSize()
+                    val previewBytes = if (snapshot) 320L * 320 * 2 else 0L
+                    if (snapshot && !history.makeRoom(stateBytes + previewBytes)) {
+                        limitMemory()
+                        if (!auto) continue
+                    }
+                    // Serialization briefly owns native and Java copies, plus one pending preview.
+                    if (!hasMemory(stateBytes * 2 + previewBytes)) { limitMemory(); continue }
                     val start = SystemClock.elapsedRealtime()
                     val state = retroView!!.serializeState(false)
                     // Weak TVs trade rewind precision for fewer serialization stalls.
                     if (SystemClock.elapsedRealtime() - start > 12) rewindStep = 1000
-                    if (auto) { writeAutomatic(state); lastAuto = playTime }
-                    if (snapshot) {
-                        lastSnapshot = playTime
+                    if (auto) writeAutomatic(state)
+                    if (snapshot && !memoryLimited) {
                         val time = playTime; val version = generation
                         captureBusy = true
                         captureBitmap(320) { bitmap ->
                             captureBusy = false
-                            if (ready && !stopped && !memoryLimited && version == generation && !rewinding) history.add(state, time, bitmap, bitmap?.byteCount ?: 0)
+                            if (ready && !stopped && !memoryLimited && version == generation && !rewinding) history.add(state, time, bitmap, bitmap?.allocationByteCount ?: 0)
                             else bitmap?.recycle()
                         }
                     }
@@ -374,7 +387,10 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         if (!rewindEnabled || memoryLimited || protectingSave || menuShowing || rewinding || exiting) return
         if (history.size == 0) { toast(getString(R.string.history_empty)); return }
         pausePlayer()
-        try { rewindOrigin = retroView!!.serializeState(false) }
+        try {
+            if (!hasMemory(LibretroDroid.stateSize() * 2)) { limitMemory(); resumePlayer(); return }
+            rewindOrigin = retroView!!.serializeState(false)
+        }
         catch (_: OutOfMemoryError) { limitMemory(); resumePlayer(); return }
         catch (_: Exception) { toast(getString(R.string.rewind_failed)); resumePlayer(); return }
         rewinding = true; generation++
@@ -409,19 +425,26 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         rewindJob?.cancel(); rewindImage?.setImageDrawable(null)
         root.removeView(rewindOverlay); rewindOverlay = null; rewindImage = null; rewindLabel = null
         rewinding = false
-        if (commit) {
-            try {
+        try {
+            if (commit) {
                 val chosen = history[rewindIndex]
-                check(retroView!!.unserializeState(chosen.state, false))
-                playTime = chosen.timeMs; lastAuto = playTime; lastSnapshot = playTime
-                history.discardAfter(rewindIndex)
-            } catch (_: Exception) {
-                val restored = rewindOrigin?.let { runCatching { retroView!!.unserializeState(it, false) }.getOrDefault(false) } ?: false
-                if (!restored) { protectingSave = true; finish() }
-                toast(getString(R.string.rewind_restore_failed))
+                if (!hasMemory(chosen.state.size.toLong())) {
+                    // Preview never mutates the core, so refusing here safely keeps the origin.
+                    limitMemory()
+                } else when (RewindRestore.apply(chosen.state, rewindOrigin,
+                    { retroView!!.unserializeState(it, false) }, ::clearHistory, ::limitMemory)) {
+                    RewindRestore.Result.APPLIED -> {
+                        playTime = chosen.timeMs; lastAuto = playTime; lastSnapshot = playTime
+                        history.discardAfter(rewindIndex)
+                    }
+                    RewindRestore.Result.ROLLED_BACK -> toast(getString(R.string.rewind_restore_failed))
+                    RewindRestore.Result.FAILED -> {
+                        protectingSave = true; finish()
+                        toast(getString(R.string.rewind_restore_failed))
+                    }
+                }
             }
-        }
-        rewindOrigin = null
+        } finally { rewindOrigin = null }
         if (resume && !protectingSave) resumePlayer()
     }
     private fun showHint() {

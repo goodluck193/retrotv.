@@ -7,11 +7,16 @@ class RewindHistory<T>(private val budget: Int, private val maxEntries: Int, pri
     var bytes = 0; private set
     val size get() = entries.size
     operator fun get(index: Int) = entries[index]
+    /** Evict before allocating the next snapshot, not only after it already exists. */
+    fun makeRoom(cost: Long): Boolean {
+        if (cost < 0 || cost > budget || maxEntries <= 0) return false
+        while (entries.isNotEmpty() && (bytes.toLong() + cost > budget || entries.size >= maxEntries)) removeFirst()
+        return true
+    }
     fun add(state: ByteArray, timeMs: Long, preview: T?, previewBytes: Int = 0) {
         val total = state.size.toLong() + previewBytes.coerceAtLeast(0)
-        if (total > budget || maxEntries <= 0) { preview?.let(release); return }
+        if (!makeRoom(total)) { preview?.let(release); return }
         val cost = total.toInt()
-        while (entries.isNotEmpty() && (bytes + cost > budget || entries.size >= maxEntries)) removeFirst()
         entries.addLast(Entry(state, timeMs, preview, cost)); bytes += cost
     }
     fun discardAfter(index: Int) {

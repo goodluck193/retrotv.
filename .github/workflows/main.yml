@@ -33,6 +33,10 @@ jobs:
           /tmp/audio-test
       - name: Prepare engine
         run: python3 scripts/prepare_engine.py
+      - name: JNI memory failure tests
+        run: |
+          g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer native/jni_bytes_test.cpp -I"$JAVA_HOME/include" -I"$JAVA_HOME/include/linux" -o /tmp/jni-bytes-test
+          /tmp/jni-bytes-test
       - name: Native resource tests
         run: |
           g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer native/resource_test.cpp .engine/libretrodroid/src/main/cpp/utils/utils.cpp -I.engine/libretrodroid/src/main/cpp -o /tmp/resource-test
@@ -64,12 +68,12 @@ jobs:
         run: python3 scripts/audit_apk.py app/build/outputs/apk/preview/app-preview.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: RetroConsole-1.6.2-debug
+          name: RetroConsole-1.6.3-debug
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 90
       - uses: actions/upload-artifact@v4
         with:
-          name: RetroConsole-1.6.2
+          name: RetroConsole-1.6.3
           path: app/build/outputs/apk/preview/app-preview.apk
           retention-days: 90
       - uses: actions/upload-artifact@v4

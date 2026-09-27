@@ -22,7 +22,7 @@ if subprocess.run(['git', 'apply', '--check', str(patch)], cwd=ENGINE, capture_o
     run('git', 'apply', str(patch))
 elif subprocess.run(['git', 'apply', '--reverse', '--check', str(patch)], cwd=ENGINE, capture_output=True).returncode != 0:
     raise SystemExit('Engine differs from expected source. Preserve your changes and prepare a clean .engine checkout.')
-for name in ('audio.h', 'audio.cpp', 'tv_audio_buffer.h', 'fpssync.h', 'fpssync.cpp', 'frame_clock.h'):
+for name in ('audio.h', 'audio.cpp', 'tv_audio_buffer.h', 'fpssync.h', 'fpssync.cpp', 'frame_clock.h', 'jni_bytes.h'):
     shutil.copyfile(ROOT / 'native' / name, ENGINE / 'libretrodroid/src/main/cpp' / name)
 shutil.copyfile(ROOT / 'engine/build.gradle.kts', ENGINE / 'libretrodroid/build.gradle.kts')
 shutil.copyfile(ROOT / 'engine/AndroidManifest.xml', ENGINE / 'libretrodroid/src/main/AndroidManifest.xml')

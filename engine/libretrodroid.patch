@@ -1,5 +1,5 @@
 diff --git a/libretrodroid/src/main/cpp/libretrodroid.cpp b/libretrodroid/src/main/cpp/libretrodroid.cpp
-index 60640c4..889bf46 100644
+index 60640c4..0717177 100644
 --- a/libretrodroid/src/main/cpp/libretrodroid.cpp
 +++ b/libretrodroid/src/main/cpp/libretrodroid.cpp
 @@ -147,12 +147,13 @@ void LibretroDroid::setControllerType(unsigned int port, unsigned int type) {
@@ -203,7 +203,18 @@ index 60640c4..889bf46 100644
  float LibretroDroid::getAspectRatio() {
      float gameAspectRatio = Environment::getInstance().retrieveGameSpecificAspectRatio();
      return gameAspectRatio > 0 ? gameAspectRatio : defaultAspectRatio;
-@@ -573,12 +607,16 @@ void LibretroDroid::reset() {
+@@ -570,15 +604,27 @@ void LibretroDroid::reset() {
+     core->retro_reset();
+ }
+ 
++size_t LibretroDroid::stateSize() {
++    std::lock_guard<std::mutex> lock(coreLock);
++    if (!core) throw std::runtime_error("Core is not ready");
++    const size_t size = core->retro_serialize_size();
++    if (size == 0 || size > 32 * 1024 * 1024) throw std::runtime_error("State exceeds memory limit");
++    return size;
++}
++
  std::pair<int8_t*, size_t> LibretroDroid::serializeState() {
      std::lock_guard<std::mutex> lock(coreLock);
  
@@ -223,7 +234,7 @@ index 60640c4..889bf46 100644
  }
  
  void LibretroDroid::resetCheat() {
-@@ -590,7 +628,7 @@ void LibretroDroid::resetCheat() {
+@@ -590,7 +636,7 @@ void LibretroDroid::resetCheat() {
  void LibretroDroid::setCheat(unsigned index, bool enabled, const std::string& code) {
      std::lock_guard<std::mutex> lock(coreLock);
  
@@ -233,10 +244,18 @@ index 60640c4..889bf46 100644
  
  bool LibretroDroid::requiresVideoRefresh() const {
 diff --git a/libretrodroid/src/main/cpp/libretrodroid.h b/libretrodroid/src/main/cpp/libretrodroid.h
-index b507aee..daf8a67 100644
+index b507aee..a1b3fd2 100644
 --- a/libretrodroid/src/main/cpp/libretrodroid.h
 +++ b/libretrodroid/src/main/cpp/libretrodroid.h
-@@ -107,7 +107,9 @@ public:
+@@ -67,6 +67,7 @@ public:
+     void setCheat(unsigned index, bool enabled, const std::string& code);
+     void resetCheat();
+ 
++    size_t stateSize();
+     std::pair<int8_t*, size_t> serializeState();
+     bool unserializeState(int8_t *data, size_t size);
+ 
+@@ -107,7 +108,9 @@ public:
      void onTouchEvent(float xAxis, float yAxis);
  
      void refreshAspectRatio();
@@ -246,7 +265,7 @@ index b507aee..daf8a67 100644
  
      bool requiresVideoRefresh() const;
      void clearRequiresVideoRefresh();
-@@ -177,6 +179,11 @@ private:
+@@ -177,6 +180,11 @@ private:
      bool dirtyVideo = false;
  
      std::mutex coreLock;
@@ -259,10 +278,18 @@ index b507aee..daf8a67 100644
      std::unique_ptr<Core> core;
      std::unique_ptr<Audio> audio;
 diff --git a/libretrodroid/src/main/cpp/libretrodroidjni.cpp b/libretrodroid/src/main/cpp/libretrodroidjni.cpp
-index 2ec15cf..a75c6b0 100644
+index 2ec15cf..90109b5 100644
 --- a/libretrodroid/src/main/cpp/libretrodroidjni.cpp
 +++ b/libretrodroid/src/main/cpp/libretrodroidjni.cpp
-@@ -54,6 +54,15 @@ extern "C" {
+@@ -43,6 +43,7 @@
+ #include "renderers/es2/imagerendereres2.h"
+ #include "renderers/es3/imagerendereres3.h"
+ #include "utils/jnistring.h"
++#include "jni_bytes.h"
+ 
+ namespace libretrodroid {
+ 
+@@ -54,6 +55,15 @@ extern "C" {
  
  extern "C" {
  
@@ -278,7 +305,42 @@ index 2ec15cf..a75c6b0 100644
  JNIEXPORT jint JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_availableDisks(
      JNIEnv* env,
      jclass obj
-@@ -198,8 +207,9 @@ JNIEXPORT jbyteArray JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_seri
+@@ -175,22 +185,25 @@ JNIEXPORT jboolean JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_unseri
+     jbyteArray state
+ ) {
+     try {
+-        jboolean isCopy = JNI_FALSE;
+-        jbyte* data = env->GetByteArrayElements(state, &isCopy);
+-        jsize size = env->GetArrayLength(state);
+-
+-        bool result = LibretroDroid::getInstance().unserializeState(data, size);
+-        env->ReleaseByteArrayElements(state, data, JNI_ABORT);
+-
+-        return result ? JNI_TRUE : JNI_FALSE;
++        return restoreJniBytes(env, state, [](jbyte* data, jsize size) {
++            return LibretroDroid::getInstance().unserializeState(data, size);
++        }) ? JNI_TRUE : JNI_FALSE;
+ 
+     } catch (std::exception &exception) {
+         LOGE("Error in unserializeState: %s", exception.what());
+-        JavaUtils::throwRetroException(env, ERROR_SERIALIZATION);
++        if (!env->ExceptionCheck()) JavaUtils::throwRetroException(env, ERROR_SERIALIZATION);
+         return JNI_FALSE;
+     }
+ }
+ 
++JNIEXPORT jlong JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_stateSize(JNIEnv* env, jclass) {
++    try { return LibretroDroid::getInstance().stateSize(); }
++    catch (const std::exception& exception) {
++        JavaUtils::throwRetroException(env, ERROR_SERIALIZATION);
++        return 0;
++    }
++}
++
+ JNIEXPORT jbyteArray JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_serializeState(
+     JNIEnv* env,
+     jclass obj
+@@ -198,8 +211,9 @@ JNIEXPORT jbyteArray JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_seri
      try {
          auto [data, size] = LibretroDroid::getInstance().serializeState();
  
@@ -289,19 +351,29 @@ index 2ec15cf..a75c6b0 100644
  
          return result;
  
-@@ -249,9 +259,10 @@ JNIEXPORT jboolean JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_unseri
-         jbyte* data = env->GetByteArrayElements(sram, &isCopy);
-         jsize size = env->GetArrayLength(sram);
- 
+@@ -245,17 +259,13 @@ JNIEXPORT jboolean JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_unseri
+     jbyteArray sram
+ ) {
+     try {
+-        jboolean isCopy = JNI_FALSE;
+-        jbyte* data = env->GetByteArrayElements(sram, &isCopy);
+-        jsize size = env->GetArrayLength(sram);
+-
 -        LibretroDroid::getInstance().unserializeSRAM(data, size);
-+        bool restored = LibretroDroid::getInstance().unserializeSRAM(data, size);
- 
-         env->ReleaseByteArrayElements(sram, data, JNI_ABORT);
-+        return restored ? JNI_TRUE : JNI_FALSE;
+-
+-        env->ReleaseByteArrayElements(sram, data, JNI_ABORT);
++        return restoreJniBytes(env, sram, [](jbyte* data, jsize size) {
++            return LibretroDroid::getInstance().unserializeSRAM(data, size);
++        }) ? JNI_TRUE : JNI_FALSE;
  
      } catch (std::exception &exception) {
          LOGE("Error in unserializeSRAM: %s", exception.what());
-@@ -269,8 +280,9 @@ JNIEXPORT jbyteArray JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_seri
+-        JavaUtils::throwRetroException(env, ERROR_SERIALIZATION);
++        if (!env->ExceptionCheck()) JavaUtils::throwRetroException(env, ERROR_SERIALIZATION);
+         return JNI_FALSE;
+     }
+ 
+@@ -269,8 +279,9 @@ JNIEXPORT jbyteArray JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_seri
      try {
          auto [data, size] = LibretroDroid::getInstance().serializeSRAM();
  
@@ -312,7 +384,7 @@ index 2ec15cf..a75c6b0 100644
  
          return result;
  
-@@ -438,14 +450,16 @@ JNIEXPORT void JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_loadGameFr
+@@ -438,14 +449,16 @@ JNIEXPORT void JNICALL Java_com_swordfish_libretrodroid_LibretroDroid_loadGameFr
  ) {
      try {
          size_t size = env->GetArrayLength(gameFileBytes);
@@ -524,7 +596,7 @@ index 7eb8602..91610da 100644
  
      private fun buildShader(config: ShaderConfig): GLRetroShader {
 diff --git a/libretrodroid/src/main/java/com/swordfish/libretrodroid/LibretroDroid.java b/libretrodroid/src/main/java/com/swordfish/libretrodroid/LibretroDroid.java
-index 50eafa1..3b1ce0f 100644
+index 50eafa1..a40518c 100644
 --- a/libretrodroid/src/main/java/com/swordfish/libretrodroid/LibretroDroid.java
 +++ b/libretrodroid/src/main/java/com/swordfish/libretrodroid/LibretroDroid.java
 @@ -98,6 +98,9 @@ public class LibretroDroid {
@@ -537,3 +609,11 @@ index 50eafa1..3b1ce0f 100644
  
      public static native void onSurfaceCreated();
      public static native void onSurfaceChanged(int width, int height);
+@@ -116,6 +119,7 @@ public class LibretroDroid {
+     public static native void setViewport(float x, float y, float width, float height);
+     public static native void setViewportAlignment(int viewportAlignment);
+ 
++    public static native long stateSize();
+     public static native byte[] serializeState();
+     public static native boolean unserializeState(byte[] state);
+ 

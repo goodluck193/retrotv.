@@ -10,6 +10,15 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 class ResourceBudgetTest {
+    @Test fun transientCopiesKeepJavaAndSystemHeadroom() {
+        val mb = ResourceBudget.MIB.toLong()
+        assertTrue(ResourceBudget.canAllocate(128 * mb, 20 * mb, 68 * mb, 32 * mb, false, 4 * mb))
+        assertFalse(ResourceBudget.canAllocate(128 * mb, 20 * mb - 1, 68 * mb, 32 * mb, false, 4 * mb))
+        assertFalse(ResourceBudget.canAllocate(128 * mb, 20 * mb, 68 * mb - 1, 32 * mb, false, 4 * mb))
+        assertFalse(ResourceBudget.canAllocate(128 * mb, 128 * mb, 256 * mb, 32 * mb, true))
+        assertFalse(ResourceBudget.canAllocate(128 * mb, 128 * mb, 256 * mb, 32 * mb, false, Long.MAX_VALUE))
+        assertFalse(ResourceBudget.canAllocate(128 * mb, 128 * mb, 256 * mb, 300 * mb, false))
+    }
     @Test fun cacheBudgetsShrinkOnSmallHeapsAndKeepStorageReserve() {
         val mb = ResourceBudget.MIB.toLong()
         assertEquals(6 * mb, ResourceBudget.rewind(256 * mb, true).toLong())

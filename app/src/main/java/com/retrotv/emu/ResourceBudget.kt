@@ -9,6 +9,10 @@ object ResourceBudget {
     fun covers(heap: Long, lowRam: Boolean) = minOf(heap / 32, (if (lowRam) 4L else 12L) * MIB).coerceAtLeast(1).toInt()
     fun canWrite(available: Long, needed: Long, reserve: Long = STORAGE_RESERVE) =
         needed >= 0 && available >= reserve && needed <= available - reserve
+    fun canAllocate(heap: Long, heapAvailable: Long, systemAvailable: Long, systemThreshold: Long,
+                    lowMemory: Boolean, extra: Long = 0): Boolean =
+        !lowMemory && canWrite(heapAvailable, extra, maxOf(16L * MIB, heap / 8)) &&
+            canWrite(systemAvailable, extra, maxOf(64L * MIB, systemThreshold))
 }
 
 /** Count both queued and running work. Reservations happen before queueing closures. */
