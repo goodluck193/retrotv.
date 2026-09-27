@@ -1,0 +1,20 @@
+[
+  {
+    "system": "nes",
+    "repository": "https://github.com/libretro-thumbnails/Nintendo_-_Nintendo_Entertainment_System",
+    "tree": "4d21463bf5d553afc34d99183c9ad5833f773b93",
+    "entries": 45818
+  },
+  {
+    "system": "snes",
+    "repository": "https://github.com/libretro-thumbnails/Nintendo_-_Super_Nintendo_Entertainment_System",
+    "tree": "cdd8f1d44612976cc9d422b0ace53a8542667688",
+    "entries": 11167
+  },
+  {
+    "system": "megadrive",
+    "repository": "https://github.com/libretro-thumbnails/Sega_-_Mega_Drive_-_Genesis",
+    "tree": "b81fd421cc18d95a1d3df2c500267e7917ae09a1",
+    "entries": 6556
+  }
+]
