@@ -16,5 +16,11 @@
     "repository": "https://github.com/libretro-thumbnails/Sega_-_Mega_Drive_-_Genesis",
     "tree": "b81fd421cc18d95a1d3df2c500267e7917ae09a1",
     "entries": 6556
+  },
+  {
+    "system": "n64",
+    "repository": "https://github.com/libretro-thumbnails/Nintendo_-_Nintendo_64",
+    "tree": "c2f9cd21605e45b4d9dc59375c942c54d3afe7e7",
+    "entries": 3042
   }
 ]

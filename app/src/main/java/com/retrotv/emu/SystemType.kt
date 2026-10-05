@@ -29,11 +29,22 @@ enum class SystemType(
         extensions = setOf("md", "gen", "bin", "smd"),
         maxRomBytes = 16L * 1024 * 1024,
         coreLibName = "libgenesis.so"
+    ),
+    N64(
+        id = "n64",
+        title = "Nintendo 64",
+        extensions = setOf("z64", "n64", "v64"),
+        maxRomBytes = 64L * 1024 * 1024,
+        coreLibName = "libmupen64plus_next.so"
     );
 
     companion object {
 
         const val HARD_LIMIT_BYTES: Long = 32L * 1024 * 1024
+        const val N64_LIMIT_BYTES: Long = 64L * 1024 * 1024
+
+        fun sourceLimit(extension: String): Long =
+            if (extension == "zip" || extension in N64.extensions) N64_LIMIT_BYTES else HARD_LIMIT_BYTES
 
         fun fromFileName(name: String): SystemType? {
             val ext = name.substringAfterLast('.', "").lowercase()
@@ -56,5 +67,11 @@ enum class SystemType(
         }
 
         SNES -> true
+        N64 -> header.size >= 4 && when (ext) {
+            "z64" -> header.take(4) == listOf(0x80, 0x37, 0x12, 0x40).map { it.toByte() }
+            "v64" -> header.take(4) == listOf(0x37, 0x80, 0x40, 0x12).map { it.toByte() }
+            "n64" -> header.take(4) == listOf(0x40, 0x12, 0x37, 0x80).map { it.toByte() }
+            else -> false
+        }
     }
 }

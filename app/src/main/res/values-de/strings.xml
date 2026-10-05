@@ -3,7 +3,7 @@
     <string name="app_name">Retro Console</string>
     <string name="settings">Einstellungen</string>
     <string name="add_rom">＋ Spiel hinzufügen</string>
-    <string name="empty_hint">Deine Bibliothek ist leer.\nFüge eine Spieldatei vom Fernseher oder USB-Laufwerk hinzu.\nFormate: .nes, .sfc, .smc, .md, .gen, .bin, .smd und .zip. Keine Spiele enthalten.</string>
+    <string name="empty_hint">Deine Bibliothek ist leer.\nFüge eine Spieldatei vom Fernseher oder USB-Laufwerk hinzu.\nFormate: .nes, .sfc, .smc, .md, .gen, .bin, .smd, .z64, .v64, .n64 und .zip. Keine Spiele enthalten.</string>
     <string name="importing">Spiel wird hinzugefügt…</string>
     <string name="import_failed">Spiel konnte nicht hinzugefügt werden</string>
     <string name="pause">Pausiert</string>
@@ -48,7 +48,7 @@
     <string name="r_720">720p (für Fernseher empfohlen)</string>
     <string name="r_1080">1080p</string>
     <string name="r_native">Native Bildschirmauflösung</string>
-    <string name="rewind_opt">Rückspulvorschau · Steuerkreuz ← halten</string>
+    <string name="rewind_opt">Rückspulvorschau · Steuerkreuz ← halten · N64: L3</string>
     <string name="rew_on">Ein</string>
     <string name="rew_off">Aus</string>
     <string name="storage">Speicher</string>
@@ -67,7 +67,7 @@
     <string name="wallpaper_hint">Wiederholte statische Muster. Die Proportionen von Muster und Spiel bleiben erhalten.</string>
     <string name="performance_hint">Scharfe Pixel oder einfaches bilineares Filtern bei 720p belasten die GPU weniger. Probiere sie bei ruckelnden Spielen. Die Hintergründe sind unbewegt.</string>
     <string name="controls">DualSense-Steuerung</string>
-    <string name="controls_help">Linker Stick: bewegen\nSteuerkreuz ↑: Pausenmenü · ←: zum Rückspulen halten\n← loslassen: fortsetzen · ○: Rückspulen abbrechen\nSNES: ✕ B · ○ A · □ Y · △ X\nNES: ✕ B · ○ A · □ Turbo B · △ Turbo A\nSega: □ A · ✕ B · ○ C · △ Y\nL1/L2: SNES L / Sega X\nR1/R2: SNES R / Sega Z\nSega X/Y/Z: Spiele mit 6 Tasten.\nOptions: Start · Create: Select / Sega Mode\nRechter Stick und Stick-Klicks: deaktiviert\nTV-Back öffnet ebenfalls das Menü.</string>
+    <string name="controls_help">Linker Stick: bewegen\nShare/Create: Pausenmenü · ←: zum Rückspulen halten\n← loslassen: fortsetzen · ○: Rückspulen abbrechen\nSNES: ✕ B · ○ A · □ Y · △ X\nNES: ✕ B · ○ A · □ Turbo B · △ Turbo A\nSega: □ A · ✕ B · ○ C · △ Y\nL1/L2: SNES L / Sega X\nR1/R2: SNES R / Sega Z\nSega X/Y/Z: Spiele mit 6 Tasten.\nOptions: Start · L3: Select / Sega Mode\nRechter Stick / R3: deaktiviert (außer N64-C-Tasten)\nTV-Back öffnet ebenfalls das Menü.\n\nN64: linker Stick + Steuerkreuz: Bewegung; rechter Stick: C-Tasten\n✕: A · □: B · ○: C↓ · △: C↑\nL1: L · L2: Z · R1/R2: R · Options: Start\nL3 halten: zurückspulen · L3 loslassen: fortsetzen · ○: abbrechen</string>
     <string name="licenses">Info und Lizenzen</string>
     <string name="legal_summary">Es werden keine Spiel-ROMs mitgeliefert oder heruntergeladen. Importiere nur Spiele, die du nutzen darfst. Cover und Konsolennamen gehören ihren Rechteinhabern; es besteht keine behauptete Verbindung. Snes9x und Genesis Plus GX beschränken die kommerzielle Nutzung. Lies vor der Weitergabe die Lizenzen.</string>
     <string name="license_files">Lizenztexte von Drittanbietern</string>
@@ -104,7 +104,7 @@
     <string name="rewind_help">Steuerkreuz ← halten: zurück · Linker Stick: anpassen\n← loslassen: fortsetzen · ○: abbrechen</string>
     <string name="rewind_position">Rückspulen   −%1$.1f s   %2$d / %3$d</string>
     <string name="rewind_restore_failed">Dieser Moment konnte nicht wiederhergestellt werden</string>
-    <string name="game_hint">Steuerkreuz ↑: Menü · ← halten: zurück · Options: Start</string>
+    <string name="game_hint">Share/Create: Menü · ← halten: zurück · Options: Start</string>
     <string name="diagnostics_body">%1$s\n\nRefills: fehlende Audiodaten. Xruns: Ausgabefehler.\nRückspulen: %2$d ms, %3$d Zustände.\nVerlaufsspeicher: %4$d / %5$d KiB.\nBei Speichermangel wird das Rückspulen deaktiviert.</string>
     <string name="controller_disconnected">Controller getrennt. Spiel pausiert.</string>
     <string name="library_failed">Bibliotheksfehler: %1$s</string>
@@ -132,7 +132,7 @@
     <string name="import_size">Die Datei überschreitet die Größenbegrenzung (%1$d MiB). Import gestoppt.</string>
     <string name="import_space">Nicht genug freier Speicher. Nach dem Import müssen mindestens 200 MiB frei bleiben.</string>
     <string name="import_open">Datei konnte nicht geöffnet werden</string>
-    <string name="import_format">Nicht unterstütztes Format. Verwende .nes, .sfc, .smc, .md, .gen, .bin, .smd oder eine ZIP-Datei mit einem Spiel.</string>
+    <string name="import_format">Nicht unterstütztes Format. Verwende .nes, .sfc, .smc, .md, .gen, .bin, .smd, .z64, .v64, .n64 oder eine ZIP-Datei mit einem Spiel.</string>
     <string name="import_timeout">Zeitlimit beim Import erreicht. Temporäre Dateien wurden entfernt.</string>
     <string name="import_error">Spiel konnte nicht importiert werden. Prüfe die Datei und den freien Speicher.</string>
     <string name="import_zip_entries">Das Archiv enthält zu viele Dateien (maximal 200).</string>
@@ -146,4 +146,7 @@
     <string name="cover_saved">Cover auf diesem Gerät gespeichert.</string>
     <string name="cover_invalid">Wähle ein Bild bis 4 MiB (PNG, JPEG oder WebP).</string>
     <string name="cover_space">Nicht genug freier Speicherplatz für ein Cover.</string>
+    <string name="n64_game_hint">Share/Create: Menü · L3 halten: zurück · Options: Start</string>
+    <string name="n64_rewind_help">L3 halten: zurückspulen · L3 loslassen: fortsetzen · ○: abbrechen</string>
+    <string name="n64_gles_required">Nintendo 64 benötigt OpenGL ES 3.0 auf diesem Fernseher.</string>
 </resources>

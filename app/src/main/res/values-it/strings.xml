@@ -3,7 +3,7 @@
     <string name="app_name">Retro Console</string>
     <string name="settings">Impostazioni</string>
     <string name="add_rom">＋ Aggiungi gioco</string>
-    <string name="empty_hint">La libreria è vuota.\nAggiungi un file di gioco dalla TV o da un’unità USB.\nFormati: .nes, .sfc, .smc, .md, .gen, .bin, .smd e .zip. Nessun gioco incluso.</string>
+    <string name="empty_hint">La libreria è vuota.\nAggiungi un file di gioco dalla TV o da un’unità USB.\nFormati: .nes, .sfc, .smc, .md, .gen, .bin, .smd, .z64, .v64, .n64 e .zip. Nessun gioco incluso.</string>
     <string name="importing">Aggiunta del gioco…</string>
     <string name="import_failed">Impossibile aggiungere il gioco</string>
     <string name="pause">In pausa</string>
@@ -48,7 +48,7 @@
     <string name="r_720">720p (consigliato per TV)</string>
     <string name="r_1080">1080p</string>
     <string name="r_native">Risoluzione nativa dello schermo</string>
-    <string name="rewind_opt">Anteprima riavvolgimento · tieni premuto ← sulla croce</string>
+    <string name="rewind_opt">Anteprima riavvolgimento · tieni premuto ← sulla croce · N64: L3</string>
     <string name="rew_on">Attivo</string>
     <string name="rew_off">Disattivato</string>
     <string name="storage">Archiviazione</string>
@@ -67,7 +67,7 @@
     <string name="wallpaper_hint">Motivi statici ripetuti. Le proporzioni del motivo e del gioco vengono mantenute.</string>
     <string name="performance_hint">Pixel nitidi o bilineare semplice a 720p riducono il carico GPU. Provali se il gioco rallenta. Gli sfondi non sono animati.</string>
     <string name="controls">Comandi DualSense</string>
-    <string name="controls_help">Stick sinistro: movimento\nCroce ↑: menu pausa · ←: tieni premuto per riavvolgere\nRilascia ←: continua · ○: annulla riavvolgimento\nSNES: ✕ B · ○ A · □ Y · △ X\nNES: ✕ B · ○ A · □ Turbo B · △ Turbo A\nSega: □ A · ✕ B · ○ C · △ Y\nL1/L2: SNES L / Sega X\nR1/R2: SNES R / Sega Z\nSega X/Y/Z: giochi a 6 pulsanti.\nOptions: Start · Create: Select / Sega Mode\nStick destro e clic degli stick: disattivati\nBack della TV apre anche il menu.</string>
+    <string name="controls_help">Stick sinistro: movimento\nShare/Create: menu pausa · ←: tieni premuto per riavvolgere\nRilascia ←: continua · ○: annulla riavvolgimento\nSNES: ✕ B · ○ A · □ Y · △ X\nNES: ✕ B · ○ A · □ Turbo B · △ Turbo A\nSega: □ A · ✕ B · ○ C · △ Y\nL1/L2: SNES L / Sega X\nR1/R2: SNES R / Sega Z\nSega X/Y/Z: giochi a 6 pulsanti.\nOptions: Start · L3: Select / Sega Mode\nStick destro / R3: disattivati (tranne i pulsanti C di N64)\nBack della TV apre anche il menu.\n\nN64: stick sinistro + croce: movimento; stick destro: pulsanti C\n✕: A · □: B · ○: C↓ · △: C↑\nL1: L · L2: Z · R1/R2: R · Options: Start\nTieni premuto L3: riavvolgi · Rilascia L3: continua · ○: annulla</string>
     <string name="licenses">Informazioni e licenze</string>
     <string name="legal_summary">Non sono inclusi né scaricati ROM di giochi. Importa solo giochi che hai diritto di usare. Copertine e nomi appartengono ai rispettivi titolari; non è implicata alcuna affiliazione. Snes9x e Genesis Plus GX limitano l’uso commerciale. Leggi le licenze prima di ridistribuire questa versione.</string>
     <string name="license_files">Testi delle licenze di terze parti</string>
@@ -104,7 +104,7 @@
     <string name="rewind_help">Tieni premuto ← sulla croce: riavvolgi · Stick sinistro: regola\nRilascia ←: continua · ○: annulla</string>
     <string name="rewind_position">Riavvolgimento   −%1$.1f s   %2$d / %3$d</string>
     <string name="rewind_restore_failed">Impossibile ripristinare questo momento</string>
-    <string name="game_hint">Croce ↑: menu · Tieni premuto ←: riavvolgi · Options: Start</string>
+    <string name="game_hint">Share/Create: menu · Tieni premuto ←: riavvolgi · Options: Start</string>
     <string name="diagnostics_body">%1$s\n\nRefills: dati audio insufficienti. Xruns: interruzioni in uscita.\nRiavvolgimento: %2$d ms, %3$d istantanee.\nMemoria cronologia: %4$d / %5$d KiB.\nIl riavvolgimento si disattiva quando la memoria è scarsa.</string>
     <string name="controller_disconnected">Controller scollegato. Gioco in pausa.</string>
     <string name="library_failed">Errore della libreria: %1$s</string>
@@ -132,7 +132,7 @@
     <string name="import_size">Il file supera il limite di dimensione (%1$d MiB). Importazione interrotta.</string>
     <string name="import_space">Spazio insufficiente. Dopo l’importazione devono restare almeno 200 MiB liberi.</string>
     <string name="import_open">Impossibile aprire il file</string>
-    <string name="import_format">Formato non supportato. Usa .nes, .sfc, .smc, .md, .gen, .bin, .smd o uno ZIP con un gioco.</string>
+    <string name="import_format">Formato non supportato. Usa .nes, .sfc, .smc, .md, .gen, .bin, .smd, .z64, .v64, .n64 o uno ZIP con un gioco.</string>
     <string name="import_timeout">Tempo di importazione scaduto. I file temporanei sono stati rimossi.</string>
     <string name="import_error">Impossibile importare il gioco. Controlla il file e lo spazio disponibile.</string>
     <string name="import_zip_entries">L’archivio contiene troppi file (limite: 200).</string>
@@ -146,4 +146,7 @@
     <string name="cover_saved">Copertina salvata su questo dispositivo.</string>
     <string name="cover_invalid">Scegli un’immagine fino a 4 MiB (PNG, JPEG o WebP).</string>
     <string name="cover_space">Spazio libero insufficiente per la copertina.</string>
+    <string name="n64_game_hint">Share/Create: menu · Tieni premuto L3: riavvolgi · Options: Start</string>
+    <string name="n64_rewind_help">Tieni premuto L3: riavvolgi · Rilascia L3: continua · ○: annulla</string>
+    <string name="n64_gles_required">Nintendo 64 richiede OpenGL ES 3.0 su questa TV.</string>
 </resources>

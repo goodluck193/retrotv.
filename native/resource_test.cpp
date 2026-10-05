@@ -38,6 +38,13 @@ int main() {
     const int fd = open(path.c_str(), O_RDONLY);
     rejects([&] { Utils::readFileAsBytes(fd); });
     assert(fcntl(fd, F_GETFD) == -1);
+    // The explicit N64 cap must not relax the default legacy/descriptor cap.
+    std::filesystem::resize_file(path, 64 * 1024 * 1024);
+    { auto n64 = Utils::readFileAsBytes(path, 64 * 1024 * 1024); assert(n64.size == 64 * 1024 * 1024); }
+    rejects([&] { Utils::readFileAsBytes(path, 0); });
+    rejects([&] { Utils::readFileAsBytes(path, 65 * 1024 * 1024); });
+    std::filesystem::resize_file(path, 64 * 1024 * 1024 + 1);
+    rejects([&] { Utils::readFileAsBytes(path, 64 * 1024 * 1024); });
     std::filesystem::remove_all(folder);
     std::cout << "1000 ROM ownership/descriptor cycles and invalid-size checks passed\n";
 }

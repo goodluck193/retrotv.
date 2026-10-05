@@ -52,13 +52,14 @@ object RomImporter {
                 val pickedExt = pickedName.substringAfterLast('.', "").lowercase()
 
 
-                if (declaredSize > SystemType.HARD_LIMIT_BYTES) {
-                    return@withTimeout Result.Error(context.getString(R.string.import_size, 32))
+                val sourceLimit = SystemType.sourceLimit(pickedExt)
+                if (declaredSize > sourceLimit) {
+                    return@withTimeout Result.Error(context.getString(R.string.import_size, sourceLimit / 1024 / 1024))
                 }
 
 
                 val usable = context.filesDir.usableSpace
-                if (usable < MIN_FREE_SPACE_BYTES + SystemType.HARD_LIMIT_BYTES) {
+                if (usable < MIN_FREE_SPACE_BYTES + sourceLimit) {
                     return@withTimeout Result.Error(context.getString(R.string.import_space))
                 }
 
@@ -150,7 +151,7 @@ object RomImporter {
         onTemp: (File) -> Unit
     ): Result = withContext(Dispatchers.IO) {
         val ext = fileName.substringAfterLast('.', "").lowercase()
-        val limit = minOf(system.maxRomBytes, SystemType.HARD_LIMIT_BYTES)
+        val limit = system.maxRomBytes
         val temp = File.createTempFile("import_", ".part", romsDir(context, system))
         onTemp(temp)
 

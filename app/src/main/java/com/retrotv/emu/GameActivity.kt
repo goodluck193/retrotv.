@@ -38,6 +38,8 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
     private lateinit var rom: Rom
     private lateinit var saves: SaveStore
     private lateinit var metadata: LibraryMetadata
+    private val isN64 get() = ::rom.isInitialized && rom.system == SystemType.N64
+    private val n64Input = N64Input { code, down -> sendButton(code, down) }
     private var ready = false
     private var stopped = false
     private var menuShowing = false
@@ -100,17 +102,35 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
                     runCatching { saves.readRam() }
                 }
                 if (ramResult.isFailure && !confirmWithoutRam()) { finish(); return@launch }
+                if (system == SystemType.N64) {
+                    require(memoryManager.deviceConfigurationInfo.reqGlEsVersion >= 0x30000) { getString(R.string.n64_gles_required) }
+                    rewindStep = 2000L
+                }
                 currentFilter = metadata.filter(rom, defaultFilter)
                 val core = CoreProvider.corePath(this@GameActivity, system) ?: error(getString(R.string.core_missing))
                 val shouldResume = intent.getBooleanExtra(EXTRA_RESUME, true) && saves.has(0)
                 protectingSave = shouldResume
                 val data = GLRetroViewData(this@GameActivity).apply {
                     coreFilePath = core.absolutePath; gameFilePath = file.absolutePath
+                    coreOnGlThread = system == SystemType.N64
+                    maxRomBytes = system.maxRomBytes
                     systemDirectory = File(filesDir, "system").apply { mkdirs() }.absolutePath
                     savesDirectory = saves.directory.absolutePath
                     saveRAMState = ramResult.getOrNull()
                     // Dedicated turbo buttons; ordinary A/B remain unaffected.
                     if (system == SystemType.NES) variables = arrayOf(Variable("fceumm_turbo_enable", "Player 1"))
+                    if (system == SystemType.N64) variables = arrayOf(
+                        Variable("mupen64plus-rdp-plugin", "gliden64"),
+                        Variable("mupen64plus-rsp-plugin", "hle"),
+                        Variable("mupen64plus-cpucore", "dynamic_recompiler"),
+                        Variable("mupen64plus-43screensize", "320x240"),
+                        Variable("mupen64plus-ThreadedRenderer", "False"),
+                        Variable("mupen64plus-MultiSampling", "0"),
+                        Variable("mupen64plus-MaxTxCacheSize", "1500"),
+                        Variable("mupen64plus-txHiresEnable", "False"),
+                        Variable("mupen64plus-alt-map", "True"),
+                        Variable("mupen64plus-astick-deadzone", "0"),
+                        Variable("mupen64plus-pak1", "memory"))
                     shader = shaderFor(currentFilter)
                     preferLowLatencyAudio = audioLowLatency; rumbleEventsEnabled = false
                 }
@@ -242,9 +262,13 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         setScreenAwake(false)
         if (!ready || stopped) return
         tickClock(); audioInfo = LibretroDroid.audioDiagnostics()
-        leftShoulder.clear(); rightShoulder.clear(); l2Axis = false; r2Axis = false
+        leftShoulder.clear(); rightShoulder.clear(); n64Input.clear(); l2Axis = false; r2Axis = false
         sentKeys.toList().forEach { sendButton(it, false) }
         retroView?.sendMotionEvent(GLRetroView.MOTION_SOURCE_DPAD, 0f, 0f)
+        if (isN64) {
+            retroView?.sendMotionEvent(GLRetroView.MOTION_SOURCE_ANALOG_LEFT, 0f, 0f)
+            retroView?.sendMotionEvent(GLRetroView.MOTION_SOURCE_ANALOG_RIGHT, 0f, 0f)
+        }
         retroView?.onPause(); LibretroDroid.pause(); stopped = true
     }
     private fun resumePlayer() {
@@ -269,17 +293,20 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
                 try {
                     val stateBytes = LibretroDroid.stateSize()
                     val previewBytes = if (snapshot) 320L * 320 * 2 else 0L
-                    if (snapshot && !history.makeRoom(stateBytes + previewBytes)) {
+                    if (snapshot && !isN64 && !history.makeRoom(stateBytes + previewBytes)) {
                         limitMemory()
                         if (!auto) continue
                     }
                     // Serialization briefly owns native and Java copies, plus one pending preview.
-                    if (!hasMemory(stateBytes * 2 + previewBytes)) { limitMemory(); continue }
+                    if (!hasMemory(snapshotAllocation(stateBytes) + previewBytes)) { limitMemory(); continue }
                     val start = SystemClock.elapsedRealtime()
-                    val state = retroView!!.serializeState(false)
+                    val state = captureState()
                     // Weak TVs trade rewind precision for fewer serialization stalls.
-                    if (SystemClock.elapsedRealtime() - start > 12) rewindStep = 1000
+                    val elapsed = SystemClock.elapsedRealtime() - start
+                    if (isN64) { if (elapsed > 50) rewindStep = 4000 }
+                    else if (elapsed > 12) rewindStep = 1000
                     if (auto) writeAutomatic(state)
+                    if (snapshot && isN64 && state.size.toLong() + previewBytes > rewindBudget) limitMemory()
                     if (snapshot && !memoryLimited) {
                         val time = playTime; val version = generation
                         captureBusy = true
@@ -290,16 +317,28 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
                         }
                     }
                 } catch (_: OutOfMemoryError) { limitMemory() }
-                catch (e: Exception) { android.util.Log.w("RetroTV", "Checkpoint", e) }
+                catch (e: Exception) { if (isN64 && e.message == "STATE_SIZE") limitMemory(); android.util.Log.w("RetroTV", "Checkpoint", e) }
             }
         }
     }
+    private fun snapshotAllocation(rawSize: Long) =
+        rawSize * 2 + if (isN64) 2L * N64StateCodec.MAX_PACKED else 0L
+    private fun captureState(): ByteArray {
+        if (!isN64) return retroView!!.serializeState(false)
+        if (!hasMemory(snapshotAllocation(LibretroDroid.stateSize()))) throw OutOfMemoryError("N64 snapshot headroom")
+        return N64StateCodec.encode(retroView!!.serializeState(true))
+    }
+    private fun applyState(state: ByteArray): Boolean {
+        if (!isN64) return retroView!!.unserializeState(state, false)
+        if (!hasMemory(N64StateCodec.rawSize(state).toLong() * 2)) throw OutOfMemoryError("N64 restore headroom")
+        return retroView!!.unserializeState(N64StateCodec.decode(state), true)
+    }
     private fun writeAutomatic(state: ByteArray): Deferred<Boolean> {
-        val ram = retroView!!.serializeSRAM(false); val target = saves
+        val ram = retroView!!.serializeSRAM(isN64); val target = saves
         return SaveWriter.submit(applicationContext, state.size.toLong() + ram.size) { target.write(0, state); target.writeRam(ram) }
     }
     private fun saveAutomatically(): Deferred<Boolean>? {
-        return try { writeAutomatic(retroView!!.serializeState(false)) }
+        return try { writeAutomatic(captureState()) }
         catch (_: OutOfMemoryError) { limitMemory(); toast(getString(R.string.save_memory)); null }
         catch (e: Exception) { toast(getString(R.string.autosave_failed, e.userMessage(this))); null }
     }
@@ -349,7 +388,7 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
     private fun saveManual(slot: Int) {
         if (protectingSave) return
         try {
-            val state = retroView!!.serializeState(false); val ram = retroView!!.serializeSRAM(false); val target = saves
+            val state = captureState(); val ram = retroView!!.serializeSRAM(isN64); val target = saves
             val job = SaveWriter.submit(applicationContext, state.size.toLong() + ram.size) { target.write(slot, state); target.writeRam(ram) }
             capturePreview(slot)
             lifecycleScope.launch { if (job.await()) toast(getString(R.string.saved_slot, slot)) }
@@ -362,9 +401,9 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         restoreJob = lifecycleScope.launch {
             var rollback: ByteArray? = null
             try {
-                rollback = retroView!!.serializeState(false)
+                rollback = captureState()
                 val state = withContext(Dispatchers.IO) { SaveWriter.flush(); saves.read(slot) }
-                check(retroView!!.unserializeState(state.bytes, false)) { getString(R.string.state_rejected) }
+                check(applyState(state.bytes)) { getString(R.string.state_rejected) }
                 clearHistory(); lastAuto = playTime; protectingSave = false
                 if (state.fromBackup) toast(getString(R.string.backup_restored))
                 if (!menuShowing) { resumePlayer(); if (initial) showHint() }
@@ -372,11 +411,11 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
                 if (e !is Exception && e !is OutOfMemoryError) throw e
                 if (e is OutOfMemoryError) limitMemory()
                 if (e is CancellationException) throw e
-                val restored = rollback?.let { runCatching { retroView!!.unserializeState(it, false) }.getOrDefault(false) } ?: false
+                val restored = rollback?.let { runCatching { applyState(it) }.getOrDefault(false) } ?: false
                 AlertDialog.Builder(this@GameActivity).setTitle(getString(R.string.restore_failed))
                     .setMessage(getString(R.string.restore_body, e.userMessage(this@GameActivity))).setCancelable(false)
                     .setPositiveButton(if (initial || !restored) getString(R.string.restart) else getString(R.string.resume)) { _, _ ->
-                        if (!restored) LibretroDroid.reset()
+                        if (!restored) retroView!!.reset(isN64)
                         protectingSave = false; if (!menuShowing) resumePlayer()
                     }.setNegativeButton(getString(R.string.to_library)) { _, _ -> finish() }.show()
             }
@@ -388,8 +427,8 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         if (history.size == 0) { toast(getString(R.string.history_empty)); return }
         pausePlayer()
         try {
-            if (!hasMemory(LibretroDroid.stateSize() * 2)) { limitMemory(); resumePlayer(); return }
-            rewindOrigin = retroView!!.serializeState(false)
+            if (!hasMemory(snapshotAllocation(LibretroDroid.stateSize()))) { limitMemory(); resumePlayer(); return }
+            rewindOrigin = captureState()
         }
         catch (_: OutOfMemoryError) { limitMemory(); resumePlayer(); return }
         catch (_: Exception) { toast(getString(R.string.rewind_failed)); resumePlayer(); return }
@@ -403,7 +442,7 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
             rewindImage = ImageView(context).apply { scaleType = ImageView.ScaleType.FIT_CENTER }
             addView(rewindImage, LinearLayout.LayoutParams(-1, 0, 1f))
             addView(TextView(context).apply {
-                text = getString(R.string.rewind_help)
+                text = getString(if (isN64) R.string.n64_rewind_help else R.string.rewind_help)
                 textSize = 17f; gravity = Gravity.CENTER; setTextColor(Color.WHITE)
             }, LinearLayout.LayoutParams(-1, -2))
         }
@@ -428,11 +467,11 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         try {
             if (commit) {
                 val chosen = history[rewindIndex]
-                if (!hasMemory(chosen.state.size.toLong())) {
+                if (!hasMemory(if (isN64) N64StateCodec.rawSize(chosen.state).toLong() * 2 else chosen.state.size.toLong())) {
                     // Preview never mutates the core, so refusing here safely keeps the origin.
                     limitMemory()
                 } else when (RewindRestore.apply(chosen.state, rewindOrigin,
-                    { retroView!!.unserializeState(it, false) }, ::clearHistory, ::limitMemory)) {
+                    { applyState(it) }, ::clearHistory, ::limitMemory)) {
                     RewindRestore.Result.APPLIED -> {
                         playTime = chosen.timeMs; lastAuto = playTime; lastSnapshot = playTime
                         history.discardAfter(rewindIndex)
@@ -449,7 +488,7 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
     }
     private fun showHint() {
         val hint = TextView(this).apply {
-            text = getString(R.string.game_hint)
+            text = getString(if (isN64) R.string.n64_game_hint else R.string.game_hint)
             textSize = 16f; gravity = Gravity.CENTER; setTextColor(Color.WHITE); setBackgroundColor(0xBB101418.toInt()); setPadding(16, 12, 16, 12)
         }
         root.addView(hint, FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM))
@@ -460,14 +499,7 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         if (rewinding) finishRewind(false, false)
         menuShowing = true; pausePlayer()
         val content = layoutInflater.inflate(R.layout.dialog_pause, null)
-        val dialog = object : AlertDialog(this, R.style.PauseDialog) {
-            override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
-                if (event.isFromSource(InputDevice.SOURCE_JOYSTICK)) {
-                    menuButton.update(2, event.getAxisValue(MotionEvent.AXIS_HAT_Y) < -.5f)
-                }
-                return super.dispatchGenericMotionEvent(event)
-            }
-        }.apply { setView(content) }
+        val dialog = AlertDialog(this, R.style.PauseDialog).apply { setView(content) }
         content.findViewById<Button>(R.id.btnResume).setOnClickListener { dialog.dismiss() }
         content.findViewById<Button>(R.id.btnSave).setOnClickListener { chooseSlot(true) }
         content.findViewById<Button>(R.id.btnLoad).setOnClickListener { chooseSlot(false) }
@@ -482,7 +514,7 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         fun exitGame() { dialog.setOnDismissListener(null); dialog.dismiss(); returnToLibrary() }
         content.findViewById<Button>(R.id.btnExit).setOnClickListener { exitGame() }
         dialog.setOnKeyListener { _, code, event ->
-            if (code == KeyEvent.KEYCODE_DPAD_UP) menuButton.update(1, event.action == KeyEvent.ACTION_DOWN)
+            if (shareButton(event)) { menuButton.update(1, event.action == KeyEvent.ACTION_DOWN); return@setOnKeyListener true }
             if (event.scanCode == 318 || code == KeyEvent.KEYCODE_BUTTON_THUMBR || code == KeyEvent.KEYCODE_BUTTON_THUMBL) true
             else when (code) {
                 KeyEvent.KEYCODE_BUTTON_B -> { if (event.action == KeyEvent.ACTION_UP) dialog.dismiss(); true }
@@ -518,23 +550,34 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
     private fun sonyTouchpad(device: InputDevice?): Boolean = device != null &&
         (device.vendorId == 0x054c || device.name.contains("DualSense", true) || device.name.contains("Wireless Controller", true))
 
+    private fun shareButton(event: KeyEvent) = event.keyCode == KeyEvent.KEYCODE_BUTTON_SELECT ||
+        (sonyTouchpad(event.device) && event.scanCode == 314)
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (exiting) return true
-        // Never send either stick click to the core, including L3+R3 combinations.
-        if (event.scanCode == 318 || event.keyCode == KeyEvent.KEYCODE_BUTTON_THUMBR || event.keyCode == KeyEvent.KEYCODE_BUTTON_THUMBL) return true
+        if (event.scanCode == 318 || event.keyCode == KeyEvent.KEYCODE_BUTTON_THUMBR) return true
         if (!ready || menuShowing || protectingSave) return super.dispatchKeyEvent(event)
         val down = event.action == KeyEvent.ACTION_DOWN
         if (event.isFromSource(InputDevice.SOURCE_GAMEPAD)) controllerId = event.deviceId
+        if (shareButton(event)) { menuButton.update(1, down); return true }
+        if (event.keyCode == KeyEvent.KEYCODE_BUTTON_THUMBL || (sonyTouchpad(event.device) && event.scanCode == 317)) {
+            if (isN64) rewindButton.update(1, down)
+            else if (!rewinding) sendButton(KeyEvent.KEYCODE_BUTTON_SELECT, down)
+            return true
+        }
         // Sony's touchpad is a separate input device on many Android kernels (BTN_LEFT).
         if (sonyTouchpad(event.device) && (event.scanCode == 272 || event.keyCode == KeyEvent.KEYCODE_BUTTON_1)) {
             if (down && event.repeatCount == 0) showPauseMenu()
             return true
         }
-        if (event.keyCode == KeyEvent.KEYCODE_DPAD_LEFT) { rewindButton.update(1, down); return true }
-        if (event.keyCode == KeyEvent.KEYCODE_DPAD_UP) { menuButton.update(1, down); return true }
+        if (!isN64 && event.keyCode == KeyEvent.KEYCODE_DPAD_LEFT) { rewindButton.update(1, down); return true }
         if (rewinding) {
             if (down && (event.keyCode == KeyEvent.KEYCODE_BUTTON_B || event.keyCode == KeyEvent.KEYCODE_BACK)) finishRewind(false)
             return true
+        }
+        if (isN64) {
+            if (event.keyCode in KeyEvent.KEYCODE_DPAD_UP..KeyEvent.KEYCODE_DPAD_RIGHT) { sendButton(event.keyCode, down); return true }
+            if (n64Input.key(event.keyCode, down)) return true
         }
         when (event.keyCode) {
             KeyEvent.KEYCODE_BACK -> { if (down && event.repeatCount == 0) showPauseMenu(); return true }
@@ -542,14 +585,14 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
             KeyEvent.KEYCODE_BUTTON_L2 -> { leftShoulder.update(2, down); return true }
             KeyEvent.KEYCODE_BUTTON_R1 -> { rightShoulder.update(1, down); return true }
             KeyEvent.KEYCODE_BUTTON_R2 -> { rightShoulder.update(2, down); return true }
-            KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_RIGHT -> return true
+            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_RIGHT -> return true
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> { sendButton(KeyEvent.KEYCODE_BUTTON_B, down); return true }
         }
         if (event.isFromSource(InputDevice.SOURCE_GAMEPAD) || event.isFromSource(InputDevice.SOURCE_JOYSTICK)) {
             // Whitelist gameplay buttons: PS, vendor buttons and right-stick events do nothing.
             val mapped = GamepadMapping.faceButton(event.keyCode)
             if (mapped != null) sendButton(mapped, down)
-            else if (event.keyCode == KeyEvent.KEYCODE_BUTTON_START || event.keyCode == KeyEvent.KEYCODE_BUTTON_SELECT) sendButton(event.keyCode, down)
+            else if (event.keyCode == KeyEvent.KEYCODE_BUTTON_START) sendButton(event.keyCode, down)
             return true
         }
         return super.dispatchKeyEvent(event)
@@ -571,9 +614,7 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         if (touchpadClick(event)) return true
         if (!ready || menuShowing || protectingSave || !event.isFromSource(InputDevice.SOURCE_JOYSTICK)) return super.dispatchGenericMotionEvent(event)
         controllerId = event.deviceId
-        menuButton.update(2, event.getAxisValue(MotionEvent.AXIS_HAT_Y) < -.5f)
-        if (menuShowing) return true
-        rewindButton.update(2, event.getAxisValue(MotionEvent.AXIS_HAT_X) < -.5f)
+        if (!isN64) rewindButton.update(2, event.getAxisValue(MotionEvent.AXIS_HAT_X) < -.5f)
         if (rewinding) {
             val x = event.getAxisValue(MotionEvent.AXIS_X)
             if (abs(x) > .5f && SystemClock.elapsedRealtime() - lastScrub > 150) {
@@ -590,6 +631,19 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         val rt = trigger(MotionEvent.AXIS_RTRIGGER, MotionEvent.AXIS_GAS)
         l2Axis = lt > if (l2Axis) .35f else .6f
         r2Axis = rt > if (r2Axis) .35f else .6f
+        if (isN64) {
+            n64Input.triggers(l2Axis, r2Axis)
+            fun axis(primary: Int, fallback: Int): Float {
+                val range = event.device?.getMotionRange(primary, event.source)
+                return if (range != null && range.min < 0f) event.getAxisValue(primary) else event.getAxisValue(fallback)
+            }
+            n64Input.cStick(axis(MotionEvent.AXIS_Z, MotionEvent.AXIS_RX), axis(MotionEvent.AXIS_RZ, MotionEvent.AXIS_RY))
+            retroView?.sendMotionEvent(GLRetroView.MOTION_SOURCE_ANALOG_LEFT,
+                N64Input.analog(event.getAxisValue(MotionEvent.AXIS_X)), N64Input.analog(event.getAxisValue(MotionEvent.AXIS_Y)))
+            retroView?.sendMotionEvent(GLRetroView.MOTION_SOURCE_DPAD,
+                event.getAxisValue(MotionEvent.AXIS_HAT_X), event.getAxisValue(MotionEvent.AXIS_HAT_Y))
+            return true
+        }
         leftShoulder.update(4, l2Axis); rightShoulder.update(4, r2Axis)
         fun stick(axis: Int): Float = event.getAxisValue(axis).let { if (abs(it) > .45f) sign(it) else 0f }
         retroView?.sendMotionEvent(GLRetroView.MOTION_SOURCE_DPAD, stick(MotionEvent.AXIS_X), stick(MotionEvent.AXIS_Y))

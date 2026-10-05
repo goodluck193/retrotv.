@@ -3,7 +3,7 @@
     <string name="app_name">Retro Console</string>
     <string name="settings">Settings</string>
     <string name="add_rom">＋ Add game</string>
-    <string name="empty_hint">Your library is empty.\nAdd a game file from your TV or USB drive.\nSupported: .nes, .sfc, .smc, .md, .gen, .bin, .smd and .zip. No games are included.</string>
+    <string name="empty_hint">Your library is empty.\nAdd a game file from your TV or USB drive.\nSupported: .nes, .sfc, .smc, .md, .gen, .bin, .smd, .z64, .v64, .n64 and .zip. No games are included.</string>
     <string name="importing">Adding game…</string>
     <string name="import_failed">Could not add game</string>
     <string name="pause">Paused</string>
@@ -48,7 +48,7 @@
     <string name="r_720">720p (recommended for TVs)</string>
     <string name="r_1080">1080p</string>
     <string name="r_native">Native display resolution</string>
-    <string name="rewind_opt">Rewind preview · hold D-pad ←</string>
+    <string name="rewind_opt">Rewind preview · hold D-pad ← · N64: L3</string>
     <string name="rew_on">On</string>
     <string name="rew_off">Off</string>
     <string name="storage">Storage</string>
@@ -67,7 +67,7 @@
     <string name="wallpaper_hint">Repeating static patterns. The pattern and game keep their original proportions.</string>
     <string name="performance_hint">Sharp pixels or simple bilinear at 720p use less GPU power. Try these if a game slows down. Backgrounds have no animation.</string>
     <string name="controls">DualSense controls</string>
-    <string name="controls_help">Left stick: move\nD-pad ↑: pause menu · ←: hold to rewind\nRelease ←: continue · ○: cancel rewind\nSNES: ✕ B · ○ A · □ Y · △ X\nNES: ✕ B · ○ A · □ Turbo B · △ Turbo A\nSega: □ A · ✕ B · ○ C · △ Y\nL1/L2: SNES L / Sega X\nR1/R2: SNES R / Sega Z\nSega X/Y/Z work in 6-button games.\nOptions: Start · Create: Select / Sega Mode\nRight stick and stick clicks: disabled\nTV Back also opens the menu.</string>
+    <string name="controls_help">Left stick: move\nShare/Create: pause menu · ←: hold to rewind\nRelease ←: continue · ○: cancel rewind\nSNES: ✕ B · ○ A · □ Y · △ X\nNES: ✕ B · ○ A · □ Turbo B · △ Turbo A\nSega: □ A · ✕ B · ○ C · △ Y\nL1/L2: SNES L / Sega X\nR1/R2: SNES R / Sega Z\nSega X/Y/Z work in 6-button games.\nOptions: Start · L3: Select / Sega Mode\nRight stick / R3: disabled (except N64 C-buttons)\nTV Back also opens the menu.\n\nN64: left stick + D-pad: movement; right stick: C-buttons\n✕: A · □: B · ○: C↓ · △: C↑\nL1: L · L2: Z · R1/R2: R · Options: Start\nHold L3: rewind · Release L3: continue · ○: cancel</string>
     <string name="licenses">About and licenses</string>
     <string name="legal_summary">No game ROMs are included or downloaded. Import only games you are entitled to use. Cover art and console names belong to their respective owners; no affiliation is implied. Snes9x and Genesis Plus GX restrict commercial use. Review the included licenses before redistributing this build.</string>
     <string name="license_files">Third-party license texts</string>
@@ -104,7 +104,7 @@
     <string name="rewind_help">Hold D-pad ←: rewind · Left stick: adjust\nRelease ←: continue · ○: cancel</string>
     <string name="rewind_position">Rewind   −%1$.1f s   %2$d / %3$d</string>
     <string name="rewind_restore_failed">Could not restore this moment</string>
-    <string name="game_hint">D-pad ↑: menu · Hold ←: rewind · Options: Start</string>
+    <string name="game_hint">Share/Create: menu · Hold ←: rewind · Options: Start</string>
     <string name="diagnostics_body">%1$s\n\nRefills: audio starvation. Xruns: output underruns.\nRewind: %2$d ms, %3$d snapshots.\nHistory memory: %4$d / %5$d KiB.\nRewind turns off automatically when memory is low.</string>
     <string name="controller_disconnected">Controller disconnected. Game paused.</string>
     <string name="library_failed">Library error: %1$s</string>
@@ -132,7 +132,7 @@
     <string name="import_size">The file exceeds the size limit (%1$d MiB). Import stopped.</string>
     <string name="import_space">Not enough free storage. Keep at least 200 MiB free after importing.</string>
     <string name="import_open">Could not open the file</string>
-    <string name="import_format">Unsupported format. Use .nes, .sfc, .smc, .md, .gen, .bin, .smd or a ZIP containing one game.</string>
+    <string name="import_format">Unsupported format. Use .nes, .sfc, .smc, .md, .gen, .bin, .smd, .z64, .v64, .n64 or a ZIP containing one game.</string>
     <string name="import_timeout">Import timed out. Temporary files have been removed.</string>
     <string name="import_error">Could not import the game. Check the file and available storage.</string>
     <string name="import_zip_entries">The archive contains too many files (limit: 200).</string>
@@ -146,4 +146,7 @@
     <string name="cover_saved">Cover saved on this device.</string>
     <string name="cover_invalid">Choose a supported image up to 4 MiB (PNG, JPEG or WebP).</string>
     <string name="cover_space">Not enough free storage for a cover.</string>
+    <string name="n64_game_hint">Share/Create: menu · Hold L3: rewind · Options: Start</string>
+    <string name="n64_rewind_help">Hold L3: rewind · Release L3: continue · ○: cancel</string>
+    <string name="n64_gles_required">Nintendo 64 requires OpenGL ES 3.0 support on this TV.</string>
 </resources>

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Refresh filename metadata only; no artwork or game data is bundled."""
-import gzip, json, pathlib, re, urllib.request, unicodedata
+import argparse, gzip, json, pathlib, re, urllib.request, unicodedata
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 REPOS = {
+    'n64': 'Nintendo_-_Nintendo_64',
     'nes': 'Nintendo_-_Nintendo_Entertainment_System',
     'snes': 'Nintendo_-_Super_Nintendo_Entertainment_System',
     'megadrive': 'Sega_-_Mega_Drive_-_Genesis',
@@ -17,8 +18,14 @@ def normalize(title):
 
 def main():
     folder = ROOT / 'app/src/main/assets/cover-index'; folder.mkdir(parents=True, exist_ok=True)
-    sources = []
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--system', choices=REPOS)
+    selected = parser.parse_args().system
+    source_file = ROOT / 'engine/cover-sources.json'
+    sources = json.loads(source_file.read_text()) if selected else []
+    sources = [s for s in sources if s['system'] != selected]
     for system, repo in REPOS.items():
+        if selected and selected != system: continue
         def fetch(url):
             req = urllib.request.Request(url, headers={'User-Agent': 'RetroConsole-cover-index'})
             with urllib.request.urlopen(req, timeout=45) as response: return json.load(response)

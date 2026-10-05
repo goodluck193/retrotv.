@@ -1,11 +1,11 @@
-# Retro Console 1.6.3
+# Retro Console 1.7.0
 
-A personal, noncommercial retro gaming app for Android TV 8+. Play your own NES / Dendy, Super Nintendo and Sega Mega Drive files with a DualSense controller. ARM 32-bit and 64-bit builds. **No games or game ROM downloads are included.**
+A personal, noncommercial retro gaming app for Android TV 8+. Play your own NES / Dendy, Super Nintendo, Sega Mega Drive and Nintendo 64 files with a DualSense controller. ARM 32-bit and 64-bit builds. **No games or game ROM downloads are included.**
 
 ## What changed
 
 - A simpler library: select a game to resume its autosave. Hold ✕ / OK for favorites, restart or deletion. Search, recent games and console categories remain available.
-- DualSense controls tailored to left-stick play, with preview rewind on D-pad Left and pause on D-pad Up (key and HAT-axis events).
+- DualSense controls tailored to left-stick play, with preview rewind on D-pad Left and pause on Share/Create.
 - Black side borders by default, plus five static backgrounds: Midnight, Quiet Grid, Dunes, Forest and Arcade. Game proportions are preserved. Each background repeats one small square vector tile at a fixed 120 dp size. Settings and gameplay use the same scale, with no stretching or animation.
 - English by default; Russian, Spanish, Portuguese, French, German and Italian selectable in Settings. All application messages are translated.
 - Better cover matching across regional names and punctuation, including Desert Demolition. A bundled filename index avoids online catalog searches on the TV. Images are optional, downloaded on demand and cached with fixed limits.
@@ -19,19 +19,19 @@ A personal, noncommercial retro gaming app for Android TV 8+. Play your own NES 
 | Left stick | Movement, including diagonals |
 | ✕ ○ □ △ | Console face buttons; see the mapping below |
 | L2 / R2 | SNES L / R or Sega X / Z; L1 / R1 also work |
-| Options / Create | Start / Select |
-| D-pad ↑ | Pause menu |
+| Options / L3 | Start / Select (NES, SNES, Sega) |
+| Share / Create | Pause menu |
 | Hold D-pad ← | Rewind with preview |
 | Left stick while rewinding | Adjust the selected moment; stops automatic scrubbing |
 | Release D-pad ← | Continue from the selected moment |
 | ○ or Back while rewinding | Cancel and return to the original moment |
-| Right stick, R3, L3 | Disabled |
+| Right stick / R3 | Disabled in NES, SNES and Sega |
 | TV remote Back | Pause; from the pause menu, return to the library without making a new save |
 | ○ in the pause menu | Resume |
 
-The D-pad is reserved during gameplay because this profile uses the left stick for movement. D-pad navigation still works in menus. Touchpad swipes do nothing. The PS logo button is controlled by Android; it is not the touchpad click.
+For NES, SNES and Sega, the D-pad is reserved during gameplay because this profile uses the left stick for movement. D-pad navigation still works in menus. Touchpad swipes do nothing. The PS logo button is controlled by Android; it is not the touchpad click.
 
-Android exposes Sony touchpad clicks as mouse-button events on many kernels. Both button and mouse-event paths are handled. Some TV firmware consumes or does not expose the touchpad device; D-pad Up and remote Back are the reliable alternatives. Real DualSense / TV testing is still required; unit tests cannot validate vendor firmware.
+Android exposes Sony touchpad clicks as mouse-button events on many kernels. Both button and mouse-event paths are handled. Some TV firmware consumes or does not expose the touchpad device; Share/Create and remote Back are the reliable alternatives. Real DualSense / TV testing is still required; unit tests cannot validate vendor firmware.
 
 | DualSense | NES / Dendy | SNES | Sega Mega Drive |
 | --- | --- | --- | --- |
@@ -42,17 +42,37 @@ Android exposes Sony touchpad clicks as mouse-button events on many kernels. Bot
 | L1 / L2 | Unused | L | X |
 | R1 / R2 | Unused | R | Z |
 | Options | Start | Start | Start |
-| Create | Select | Select | Mode |
+| L3 | Select | Select | Mode |
 
 The face mapping translates Android's Xbox-style letter codes to RetroPad positions before passing them to LibretroDroid. NES dedicated turbo buttons are enabled for player 1; normal A/B are unchanged. NES shoulder buttons are ignored. Genesis Plus GX keeps its automatic 3/6-button detection for game compatibility; X/Y/Z and Mode only apply to six-button games. Holding a trigger and its matching shoulder together does not release the virtual button until both are released.
 
 Mappings checked against [FCEUmm](https://docs.libretro.com/library/fceumm/#joypad), [Snes9x](https://docs.libretro.com/library/snes9x/) and [Genesis Plus GX](https://docs.libretro.com/library/genesis_plus_gx/#joypad), plus the pinned LibretroDroid Android-to-libretro conversion.
 
+## Nintendo 64
+
+Mupen64Plus-Next is built separately for ARM32/ARM64 from `engine/n64.lock.json`. The existing three core revisions and build flags are unchanged. N64 requires OpenGL ES 3.0; unsupported TVs get a message before loading the core. GLideN64 runs at 320×240 with HLE RSP, dynamic recompilation, a 1,500-entry texture cache, no MSAA, no high-resolution texture packs and no threaded renderer. Game compatibility and speed depend on the TV; a successful build is not a hardware play test.
+
+| DualSense | N64 |
+| --- | --- |
+| Left stick | Analog stick |
+| D-pad | All four N64 directions |
+| ✕ / □ | A / B |
+| Right stick | Four C-buttons |
+| ○ / △ | C-down / C-up alternatives |
+| L1 / L2 | L / Z |
+| R1 or R2 | R |
+| Options | Start |
+| Share/Create | Pause menu |
+| Hold / release L3 | Preview rewind / resume from selection |
+| ○ while rewinding | Cancel rewind |
+
+N64 snapshots are roughly 16 MiB before compression. Only N64 uses a checksummed compressed envelope, limited to 8 MiB packed / 32 MiB raw; it rejects corrupt or oversized payloads before restoration. Capture occurs every 2 seconds, reduced to every 4 seconds if capture is slow. The existing total history and memory-headroom limits still apply; rewind is cleared/disabled under pressure. N64 core creation, state/SRAM access and destruction run on its GL thread because its coroutine and graphics context cannot safely migrate between threads. [Core documentation](https://docs.libretro.com/library/mupen64plus/).
+
 ## Saves, audio and resource limits
 
 Autosave every 30 seconds during play and when the app is sent to the background; three manual slots with timestamps and thumbnails. **Return to library** does not create a new save and suppresses the usual onStop autosave. Previously completed or already queued saves are kept; the command does not roll back earlier autosaves. Cartridge SRAM is separate. Saves use checksums, atomic writes and a previous good backup. A changed core fingerprint is rejected instead of silently loading an incompatible state. Removing a game keeps its progress by default; reimporting the same content finds it by SHA-256.
 
-Rewind captures every 500 ms, or 1 second on slow devices. At most 120 snapshots, including previews, fit within 1/16 of the Java heap and 24 MiB (6 MiB on low-RAM devices). Under memory pressure, history is cleared and disabled until the next launch. The core is paused during preview; the chosen state is applied only on release. Before allocation, old snapshots are evicted and available Java/system memory is checked with room for temporary copies. A failed restore discards optional history and recovers the original state; if recovery also fails, the player closes without saving the uncertain state. JNI buffers are released on both success and failure, and allocation failures never pass null data to a core.
+NES/SNES/Sega rewind captures every 500 ms, or 1 second on slow devices. At most 120 snapshots, including previews, fit within 1/16 of the Java heap and 24 MiB (6 MiB on low-RAM devices). Under memory pressure, history is cleared and disabled until the next launch. The core is paused during preview; the chosen state is applied only on release. Before allocation, old snapshots are evicted and available Java/system memory is checked with room for temporary copies. A failed restore discards optional history and recovers the original state; if recovery also fails, the player closes without saving the uncertain state. JNI buffers are released on both success and failure, and allocation failures never pass null data to a core.
 
 The audio pipeline uses continuous fractional resampling, a bounded PCM queue, rebuffering and a monotonic game clock. Compatible OpenSL ES audio defaults to a 100 ms app buffer; optional low latency uses 40 ms. This is buffering, not total output latency. Short scheduling gaps are absorbed; sustained insufficient CPU performance can still cause pauses.
 
@@ -62,9 +82,9 @@ Pause stops emulation/audio and allows the TV screensaver. The game menu contain
 
 ## Import and cover art
 
-Use **Add game** to select one file through Android's document picker. Formats: `.nes`, `.sfc`, `.smc`, `.md`, `.gen`, `.bin`, `.smd`, or ZIP containing a supported game. Files are copied into private app storage; broad storage permission is not requested.
+Use **Add game** to select one file through Android's document picker. Formats: `.nes`, `.sfc`, `.smc`, `.md`, `.gen`, `.bin`, `.smd`, `.z64`, `.v64`, `.n64`, or ZIP containing a supported game. Files are copied into private app storage; broad storage permission is not requested.
 
-Limits: NES 8 MiB; SNES/Sega 16 MiB; source file 32 MiB; 200 ZIP entries; 32 MiB of skipped archive data; at least 200 MiB storage reserve. The 60-second import timeout is checked between reads; a blocked document provider can delay cancellation.
+Limits: NES 8 MiB; SNES/Sega 16 MiB; N64 64 MiB; source file 32 MiB (64 MiB for N64 and ZIP); 200 ZIP entries; 32 MiB of skipped archive data; at least 200 MiB storage reserve. The 60-second import timeout is checked between reads; a blocked document provider can delay cancellation.
 
 Online cover downloads are **off by default**, also when upgrading from the old default-on preference. Enabling them requires confirmation: GitHub / Libretro Thumbnails receives the requested public image path (containing the game title) and the network IP address, as with any image download. ROM data, saves and a library listing are never uploaded. Only paths in the bundled public catalog are requested; raw user filenames are never sent. With downloads off, the app makes no cover requests and existing cached images still load.
 
@@ -80,6 +100,7 @@ Java 17, Python 3, Git, Android SDK 34, Build Tools 34.0.0, NDK 26.3.11579264 an
 sdkmanager 'platforms;android-34' 'build-tools;34.0.0' 'ndk;26.3.11579264' 'cmake;3.22.1'
 python3 scripts/prepare_engine.py
 python3 scripts/build_cores.py
+python3 scripts/build_n64.py
 python3 scripts/check_resources.py
 ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:assemblePreview
 python3 scripts/audit_apk.py app/build/outputs/apk/preview/app-preview.apk
@@ -87,7 +108,7 @@ python3 scripts/audit_apk.py app/build/outputs/apk/preview/app-preview.apk
 
 Prepare the engine and cores before opening Android Studio. Engine patches live in `engine/libretrodroid.patch`; native audio/clock code in `native/`; exact core sources in `engine/cores.lock.json`. `scripts/update_cover_index.py` refreshes filename metadata during development; it never runs on the TV. Source trees for the current index are recorded in `engine/cover-sources.json`.
 
-The normal debug package remains `com.retrotv.emu` to preserve data compatibility when signed with your existing key. The installable **Retro Console** uses `com.retrotv.emu.preview.console`, with its own library and saves. Version 1.6.2 removed Preview from the launcher label and visible version while keeping the package ID and signature. Version 1.6.3 updates 1.6.0/1.6.1-preview and 1.6.2 in place and preserves their games and saves. The internal preview build-type/package names remain only for compatibility. It can coexist with older RetroTV installations, whose private data is separate. **Do not uninstall an older app to resolve a signing conflict: uninstalling deletes its private games and progress.**
+The normal debug package remains `com.retrotv.emu` to preserve data compatibility when signed with your existing key. The installable **Retro Console** uses `com.retrotv.emu.preview.console`, with its own library and saves. Version 1.6.2 removed Preview from the launcher label and visible version while keeping the package ID and signature. Version 1.7.0 updates 1.6.0/1.6.1-preview and 1.6.2 in place and preserves their games and saves. The internal preview build-type/package names remain only for compatibility. It can coexist with older RetroTV installations, whose private data is separate. **Do not uninstall an older app to resolve a signing conflict: uninstalling deletes its private games and progress.**
 
 Preview 1.6 introduces a consistent, deliberately public **test-only** key at `config/preview-test.keystore` (alias `androiddebugkey`, password `android`). Future previews can update this package with the same signature. This is not a production identity; anyone with the public key material can sign a preview build, so install only builds you trust. A release must use your own private signing key. Earlier CI-generated private debug keys are unavailable, so 1.6 cannot update those preview packages in place or read their private saves.
 

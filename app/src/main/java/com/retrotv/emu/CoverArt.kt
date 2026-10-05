@@ -68,6 +68,7 @@ object CoverArt {
                             SystemType.NES -> "Nintendo_-_Nintendo_Entertainment_System"
                             SystemType.SNES -> "Nintendo_-_Super_Nintendo_Entertainment_System"
                             SystemType.MEGADRIVE -> "Sega_-_Mega_Drive_-_Genesis"
+                            SystemType.N64 -> "Nintendo_-_Nintendo_64"
                         }
                         // Only public catalog paths may leave the device, never a user's raw filename.
                         val paths = CoverIndex.candidates(context, rom)

@@ -3,7 +3,7 @@
     <string name="app_name">Retro Console</string>
     <string name="settings">Configurações</string>
     <string name="add_rom">＋ Adicionar jogo</string>
-    <string name="empty_hint">Sua biblioteca está vazia.\nAdicione um arquivo de jogo da TV ou de uma unidade USB.\nFormatos: .nes, .sfc, .smc, .md, .gen, .bin, .smd e .zip. Nenhum jogo está incluído.</string>
+    <string name="empty_hint">Sua biblioteca está vazia.\nAdicione um arquivo de jogo da TV ou de uma unidade USB.\nFormatos: .nes, .sfc, .smc, .md, .gen, .bin, .smd, .z64, .v64, .n64 e .zip. Nenhum jogo está incluído.</string>
     <string name="importing">Adicionando jogo…</string>
     <string name="import_failed">Não foi possível adicionar o jogo</string>
     <string name="pause">Pausado</string>
@@ -48,7 +48,7 @@
     <string name="r_720">720p (recomendado para TV)</string>
     <string name="r_1080">1080p</string>
     <string name="r_native">Resolução nativa da tela</string>
-    <string name="rewind_opt">Retrocesso com prévia · segure o direcional ←</string>
+    <string name="rewind_opt">Retrocesso com prévia · segure o direcional ← · N64: L3</string>
     <string name="rew_on">Ativado</string>
     <string name="rew_off">Desativado</string>
     <string name="storage">Armazenamento</string>
@@ -67,7 +67,7 @@
     <string name="wallpaper_hint">Padrões estáticos repetidos. As proporções do padrão e do jogo são mantidas.</string>
     <string name="performance_hint">Pixels nítidos ou bilinear simples em 720p usam menos GPU. Experimente se o jogo ficar lento. Os fundos não têm animação.</string>
     <string name="controls">Controles DualSense</string>
-    <string name="controls_help">Analógico esquerdo: mover\nDirecional ↑: menu de pausa · ←: segurar para retroceder\nSoltar ←: continuar · ○: cancelar retrocesso\nSNES: ✕ B · ○ A · □ Y · △ X\nNES: ✕ B · ○ A · □ Turbo B · △ Turbo A\nSega: □ A · ✕ B · ○ C · △ Y\nL1/L2: SNES L / Sega X\nR1/R2: SNES R / Sega Z\nSega X/Y/Z: jogos de 6 botões.\nOptions: Start · Create: Select / Sega Mode\nAnalógico direito e cliques dos analógicos: desativados\nBack da TV também abre o menu.</string>
+    <string name="controls_help">Analógico esquerdo: mover\nShare/Create: menu de pausa · ←: segurar para retroceder\nSoltar ←: continuar · ○: cancelar retrocesso\nSNES: ✕ B · ○ A · □ Y · △ X\nNES: ✕ B · ○ A · □ Turbo B · △ Turbo A\nSega: □ A · ✕ B · ○ C · △ Y\nL1/L2: SNES L / Sega X\nR1/R2: SNES R / Sega Z\nSega X/Y/Z: jogos de 6 botões.\nOptions: Start · L3: Select / Sega Mode\nAnalógico direito / R3: desativados (exceto botões C do N64)\nBack da TV também abre o menu.\n\nN64: analógico esquerdo + direcional: movimento; analógico direito: botões C\n✕: A · □: B · ○: C↓ · △: C↑\nL1: L · L2: Z · R1/R2: R · Options: Start\nSegurar L3: retroceder · Soltar L3: continuar · ○: cancelar</string>
     <string name="licenses">Sobre e licenças</string>
     <string name="legal_summary">Nenhum ROM de jogo é incluído ou baixado. Importe apenas jogos que você tenha direito de usar. Capas e nomes pertencem aos respectivos titulares; não há vínculo implícito. Snes9x e Genesis Plus GX restringem o uso comercial. Leia as licenças antes de redistribuir esta versão.</string>
     <string name="license_files">Textos das licenças de terceiros</string>
@@ -104,7 +104,7 @@
     <string name="rewind_help">Segurar direcional ←: retroceder · Analógico esquerdo: ajustar\nSoltar ←: continuar · ○: cancelar</string>
     <string name="rewind_position">Retrocesso   −%1$.1f s   %2$d / %3$d</string>
     <string name="rewind_restore_failed">Não foi possível restaurar este momento</string>
-    <string name="game_hint">Direcional ↑: menu · Segurar ←: retroceder · Options: Start</string>
+    <string name="game_hint">Share/Create: menu · Segurar ←: retroceder · Options: Start</string>
     <string name="diagnostics_body">%1$s\n\nRefills: falta de dados de áudio. Xruns: falhas de saída.\nRetrocesso: %2$d ms, %3$d capturas.\nMemória do histórico: %4$d / %5$d KiB.\nO retrocesso é desativado quando há pouca memória.</string>
     <string name="controller_disconnected">Controle desconectado. Jogo pausado.</string>
     <string name="library_failed">Erro na biblioteca: %1$s</string>
@@ -132,7 +132,7 @@
     <string name="import_size">O arquivo excede o limite de tamanho (%1$d MiB). Importação interrompida.</string>
     <string name="import_space">Espaço insuficiente. Mantenha pelo menos 200 MiB livres após a importação.</string>
     <string name="import_open">Não foi possível abrir o arquivo</string>
-    <string name="import_format">Formato não suportado. Use .nes, .sfc, .smc, .md, .gen, .bin, .smd ou um ZIP com um jogo.</string>
+    <string name="import_format">Formato não suportado. Use .nes, .sfc, .smc, .md, .gen, .bin, .smd, .z64, .v64, .n64 ou um ZIP com um jogo.</string>
     <string name="import_timeout">O tempo de importação esgotou. Os arquivos temporários foram removidos.</string>
     <string name="import_error">Não foi possível importar o jogo. Verifique o arquivo e o espaço disponível.</string>
     <string name="import_zip_entries">O arquivo contém arquivos demais (limite: 200).</string>
@@ -146,4 +146,7 @@
     <string name="cover_saved">Capa salva neste dispositivo.</string>
     <string name="cover_invalid">Escolha uma imagem de até 4 MiB (PNG, JPEG ou WebP).</string>
     <string name="cover_space">Espaço livre insuficiente para a capa.</string>
+    <string name="n64_game_hint">Share/Create: menu · Segurar L3: retroceder · Options: Start</string>
+    <string name="n64_rewind_help">Segurar L3: retroceder · Soltar L3: continuar · ○: cancelar</string>
+    <string name="n64_gles_required">Nintendo 64 requer OpenGL ES 3.0 nesta TV.</string>
 </resources>

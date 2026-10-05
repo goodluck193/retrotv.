@@ -25,7 +25,7 @@ class MainActivity : AppCompatActivity() {
     private var focusedPath: String? = null
     private var refreshJob: Job? = null
     private var coverPath: String? = null
-    private val categories get() = arrayOf(getString(R.string.all_games), getString(R.string.recent), getString(R.string.favorites), "NES / Dendy", "Super Nintendo", "Sega Mega Drive")
+    private val categories get() = arrayOf(getString(R.string.all_games), getString(R.string.recent), getString(R.string.favorites), "NES / Dendy", "Super Nintendo", "Sega Mega Drive", "Nintendo 64")
     private val pickRom = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? -> if (uri != null) importRom(uri) }
     private val pickCover = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         val path = coverPath; coverPath = null
@@ -98,6 +98,7 @@ class MainActivity : AppCompatActivity() {
             3 -> list.filter { it.system == SystemType.NES }
             4 -> list.filter { it.system == SystemType.SNES }
             5 -> list.filter { it.system == SystemType.MEGADRIVE }
+            6 -> list.filter { it.system == SystemType.N64 }
             else -> list
         }
         adapter.submit(list)
@@ -165,7 +166,7 @@ private class RomAdapter(private val metadata: LibraryMetadata, private val scop
     override fun onBindViewHolder(holder: VH, position: Int) {
         holders.add(holder)
         val rom = items[position]; holder.title.text = (if (metadata.favorite(rom)) "★ " else "") + rom.title; holder.system.text = rom.system.title
-        holder.cover.setImageDrawable(null); holder.placeholder.text = when (rom.system) { SystemType.NES -> "NES"; SystemType.SNES -> "SNES"; SystemType.MEGADRIVE -> "SEGA" }; holder.placeholder.visibility = View.VISIBLE
+        holder.cover.setImageDrawable(null); holder.placeholder.text = when (rom.system) { SystemType.NES -> "NES"; SystemType.SNES -> "SNES"; SystemType.MEGADRIVE -> "SEGA"; SystemType.N64 -> "N64" }; holder.placeholder.visibility = View.VISIBLE
         holder.job?.cancel(); holder.job = scope.launch {
             val bitmap = CoverArt.load(holder.itemView.context.applicationContext, rom); holder.cover.setImageBitmap(bitmap); holder.placeholder.visibility = if (bitmap == null) View.VISIBLE else View.GONE
         }
