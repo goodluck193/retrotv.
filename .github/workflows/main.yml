@@ -62,7 +62,7 @@ jobs:
             app/src/main/assets/licenses/fceumm
             app/src/main/assets/licenses/snes9x
             app/src/main/assets/licenses/genesis
-      - uses: actions/cache@v4
+      - uses: actions/cache/restore@v4
         id: n64-cache
         with:
           key: ${{ runner.os }}-n64-ndk26.3-${{ hashFiles('engine/n64.lock.json', 'engine/n64-lifecycle.patch', 'scripts/build_n64.py') }}
@@ -72,6 +72,13 @@ jobs:
       - name: Build pinned Nintendo 64 core
         if: steps.n64-cache.outputs.cache-hit != 'true'
         run: python3 scripts/build_n64.py
+      - uses: actions/cache/save@v4
+        if: steps.n64-cache.outputs.cache-hit != 'true'
+        with:
+          key: ${{ steps.n64-cache.outputs.cache-primary-key }}
+          path: |
+            app/src/main/jniLibs/*/libmupen64plus_next.so
+            app/src/main/assets/licenses/n64
       - name: Test and build
         run: ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:assemblePreview --no-daemon --max-workers=2
       - name: Audit packaged content

@@ -14,7 +14,8 @@ for core in json.loads((ROOT / 'engine/n64.lock.json').read_text()):
         subprocess.run(['git', 'remote', 'add', 'origin', core['repository']], cwd=source, check=True)
         subprocess.run(['git', 'fetch', '--depth', '1', 'origin', core['revision']], cwd=source, check=True)
     subprocess.run(['git', 'checkout', '--detach', core['revision']], cwd=source, check=True)
-    subprocess.run(['git', 'submodule', 'update', '--init', '--recursive', '--depth', '1'], cwd=source, check=True)
+    # HLE/GLideN64 sources are vendored. Unused ParaLLEl contains an orphan
+    # gnulib gitlink without .gitmodules; never recurse into disabled backends.
     patch = ROOT / 'engine/n64-lifecycle.patch'
     if subprocess.run(['git', 'apply', '--check', str(patch)], cwd=source, capture_output=True).returncode == 0:
         subprocess.run(['git', 'apply', str(patch)], cwd=source, check=True)
