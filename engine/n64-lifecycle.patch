@@ -1,0 +1,40 @@
+diff --git a/libretro/libretro.c b/libretro/libretro.c
+index 4a9f129..e284447 100644
+--- a/libretro/libretro.c
++++ b/libretro/libretro.c
+@@ -740,13 +740,21 @@ void retro_deinit(void)
+     {
+        if(!(current_rdp_type == RDP_PLUGIN_GLIDEN64 && EnableThreadedRenderer))
+        {
+-           CoreDoCommand(M64CMD_STOP, 0, NULL);
+-           co_switch(game_thread); /* Let the core thread finish */
++           if (!initializing && game_thread)
++           {
++               CoreDoCommand(M64CMD_STOP, 0, NULL);
++               co_switch(game_thread); /* Let the core thread finish */
++           }
+            CoreDoCommand(M64CMD_ROM_CLOSE, 0, NULL);
+        }
+     }
+ 
+     CoreShutdown();
++    // The frontend repeatedly loads/unloads this library in one Android process.
++    // libco stacks are heap allocations; dlclose does not release them.
++    if (game_thread) { co_delete(game_thread); game_thread = NULL; }
++    free(game_data); game_data = NULL; game_size = 0;
++    load_game_successful = false;
+     deinit_audio_libretro();
+ 
+     if (perf_cb.perf_log)
+@@ -1982,7 +1990,11 @@ bool retro_load_game(const struct retro_game_info *game)
+     }
+ #endif
+ 
++    if (!game_thread || !game || !game->data || !game->size)
++        return false;
+     game_data = malloc(game->size);
++    if (!game_data)
++        return false;
+     memcpy(game_data, game->data, game->size);
+     game_size = game->size;
+ 

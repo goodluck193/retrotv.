@@ -65,7 +65,7 @@ jobs:
       - uses: actions/cache@v4
         id: n64-cache
         with:
-          key: ${{ runner.os }}-n64-ndk26.3-${{ hashFiles('engine/n64.lock.json', 'scripts/build_n64.py') }}
+          key: ${{ runner.os }}-n64-ndk26.3-${{ hashFiles('engine/n64.lock.json', 'engine/n64-lifecycle.patch', 'scripts/build_n64.py') }}
           path: |
             app/src/main/jniLibs/*/libmupen64plus_next.so
             app/src/main/assets/licenses/n64

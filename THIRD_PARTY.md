@@ -9,7 +9,7 @@ This is a personal, noncommercial emulator frontend. Component licenses apply in
 | FCEUmm | [236ccdf](https://github.com/libretro/libretro-fceumm/tree/236ccdfc911e84c60fea6b9d0699c2d440a8de14) | GPL-2.0-or-later and component notices. The top-level `Copying` file is included, regardless of case. |
 | Snes9x | [890b5d4](https://github.com/libretro/snes9x/tree/890b5d445538fe790aa3add3d5702c80f551e0ae) | Snes9x License; personal / noncommercial conditions. [License](https://github.com/libretro/snes9x/blob/890b5d445538fe790aa3add3d5702c80f551e0ae/LICENSE). |
 | Genesis Plus GX | [c2838c7](https://github.com/libretro/Genesis-Plus-GX/tree/c2838c7dc4236fc2fe94e5dbd08b41486067918e) | Project license prohibits sale and use in a commercial product or activity. [License](https://github.com/libretro/Genesis-Plus-GX/blob/c2838c7dc4236fc2fe94e5dbd08b41486067918e/LICENSE.txt). |
-| Mupen64Plus-Next / GLideN64 | [12edd2c](https://github.com/libretro/mupen64plus-libretro-nx/tree/12edd2c74a517ff86dfa8cfc71ad75e4c10486d5) | GPL and component notices, packaged from pinned source by `scripts/build_n64.py`. |
+| Mupen64Plus-Next / GLideN64 | [12edd2c](https://github.com/libretro/mupen64plus-libretro-nx/tree/12edd2c74a517ff86dfa8cfc71ad75e4c10486d5) | GPL and component notices, packaged from pinned source by `scripts/build_n64.py`; lifecycle/allocation fixes in `engine/n64-lifecycle.patch`. |
 | AndroidX, Kotlin, kotlinx.coroutines | Versions in Gradle build files | Apache-2.0, plus upstream notices. |
 | Libretro Thumbnails | [Repositories](https://github.com/libretro-thumbnails); metadata snapshots in `engine/cover-sources.json` | Optional remote artwork. Images belong to their respective rightsholders; emulator code licenses do not license that artwork. |
 

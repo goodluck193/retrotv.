@@ -534,7 +534,7 @@ index b8f5240..aec6752 100644
  
      static const char* cloneToCString(const std::string &input);
 diff --git a/libretrodroid/src/main/java/com/swordfish/libretrodroid/GLRetroView.kt b/libretrodroid/src/main/java/com/swordfish/libretrodroid/GLRetroView.kt
-index 7eb8602..bbbf30c 100644
+index 7eb8602..257e914 100644
 --- a/libretrodroid/src/main/java/com/swordfish/libretrodroid/GLRetroView.kt
 +++ b/libretrodroid/src/main/java/com/swordfish/libretrodroid/GLRetroView.kt
 @@ -34,12 +34,13 @@ import androidx.lifecycle.OnLifecycleEvent
@@ -552,7 +552,15 @@ index 7eb8602..bbbf30c 100644
  import javax.microedition.khronos.egl.EGLConfig
  import javax.microedition.khronos.opengles.GL10
  import kotlin.properties.Delegates
-@@ -95,29 +96,34 @@ class GLRetroView(
+@@ -73,6 +74,7 @@ class GLRetroView(
+ 
+     private val openGLESVersion: Int
+ 
++    private var announceFirstFrame = false
+     private var isGameLoaded = false
+     private var isEmulationReady = false
+     private var isAborted = false
+@@ -95,29 +97,34 @@ class GLRetroView(
      @OnLifecycleEvent(Lifecycle.Event.ON_CREATE)
      fun onCreate(lifecycleOwner: LifecycleOwner) = catchExceptions {
          lifecycle = lifecycleOwner.lifecycle
@@ -606,13 +614,17 @@ index 7eb8602..bbbf30c 100644
      }
  
      private fun getDeviceLanguage() = Locale.getDefault().language
-@@ -319,20 +325,19 @@ class GLRetroView(
+@@ -319,22 +326,27 @@ class GLRetroView(
          override fun onDrawFrame(gl: GL10) = catchExceptions {
              if (isEmulationReady) {
                  LibretroDroid.step(this@GLRetroView)
 -                lifecycle?.coroutineScope?.launch {
 -                    retroGLEventsSubject.emit(GLRetroEvents.FrameRendered)
--                }
++                // N64 initializes its coroutine on retro_run, before states can be restored.
++                if (announceFirstFrame) {
++                    announceFirstFrame = false
++                    lifecycle?.coroutineScope?.launch { retroGLEventsSubject.emit(GLRetroEvents.SurfaceCreated) }
+                 }
 +                // RetroTV consumes SurfaceCreated only. No coroutine per video frame:
 +                // a busy UI must not accumulate an unbounded event queue.
              }
@@ -629,9 +641,13 @@ index 7eb8602..bbbf30c 100644
 -            Thread.currentThread().priority = Thread.MAX_PRIORITY
 +            Thread.currentThread().priority = Thread.NORM_PRIORITY
              initializeCore()
-             lifecycle?.coroutineScope?.launch {
+-            lifecycle?.coroutineScope?.launch {
++            if (data.coreOnGlThread) announceFirstFrame = true
++            else lifecycle?.coroutineScope?.launch {
                  retroGLEventsSubject.emit(GLRetroEvents.SurfaceCreated)
-@@ -371,7 +376,7 @@ class GLRetroView(
+             }
+         }
+@@ -371,7 +383,7 @@ class GLRetroView(
      }
  
      private fun loadGameFromPath(gameFilePath: String) {
@@ -640,7 +656,7 @@ index 7eb8602..bbbf30c 100644
      }
  
      private fun catchExceptions(block: () -> Unit) {
-@@ -379,15 +384,12 @@ class GLRetroView(
+@@ -379,15 +391,12 @@ class GLRetroView(
              if (isAborted) return
              block()
          } catch (e: RetroException) {
@@ -659,7 +675,7 @@ index 7eb8602..bbbf30c 100644
          }
      }
  
-@@ -397,14 +399,17 @@ class GLRetroView(
+@@ -397,14 +406,17 @@ class GLRetroView(
          }
  
          val latch = CountDownLatch(1)

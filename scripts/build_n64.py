@@ -15,6 +15,11 @@ for core in json.loads((ROOT / 'engine/n64.lock.json').read_text()):
         subprocess.run(['git', 'fetch', '--depth', '1', 'origin', core['revision']], cwd=source, check=True)
     subprocess.run(['git', 'checkout', '--detach', core['revision']], cwd=source, check=True)
     subprocess.run(['git', 'submodule', 'update', '--init', '--recursive', '--depth', '1'], cwd=source, check=True)
+    patch = ROOT / 'engine/n64-lifecycle.patch'
+    if subprocess.run(['git', 'apply', '--check', str(patch)], cwd=source, capture_output=True).returncode == 0:
+        subprocess.run(['git', 'apply', str(patch)], cwd=source, check=True)
+    elif subprocess.run(['git', 'apply', '--reverse', '--check', str(patch)], cwd=source, capture_output=True).returncode != 0:
+        raise SystemExit('N64 source differs from its pinned source and patch')
     build = source / core['jni']
     subprocess.run([str(ndk / 'ndk-build'), '-C', str(build), '-j2',
         'APP_ABI=arm64-v8a armeabi-v7a', 'APP_PLATFORM=android-26',
