@@ -499,7 +499,7 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         if (rewinding) finishRewind(false, false)
         menuShowing = true; pausePlayer()
         val content = layoutInflater.inflate(R.layout.dialog_pause, null)
-        val dialog = AlertDialog(this, R.style.PauseDialog).apply { setView(content) }
+        val dialog = object : AlertDialog(this, R.style.PauseDialog) {}.apply { setView(content) }
         content.findViewById<Button>(R.id.btnResume).setOnClickListener { dialog.dismiss() }
         content.findViewById<Button>(R.id.btnSave).setOnClickListener { chooseSlot(true) }
         content.findViewById<Button>(R.id.btnLoad).setOnClickListener { chooseSlot(false) }

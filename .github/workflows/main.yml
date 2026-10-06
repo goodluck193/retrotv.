@@ -83,6 +83,10 @@ jobs:
         run: ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:assemblePreview --no-daemon --max-workers=2
       - name: Audit packaged content
         run: python3 scripts/audit_apk.py app/build/outputs/apk/preview/app-preview.apk
+      - name: Verify installable APK signature
+        run: |
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/preview/app-preview.apk
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging app/build/outputs/apk/preview/app-preview.apk
       - uses: actions/upload-artifact@v4
         with:
           name: RetroConsole-1.7.0-debug
