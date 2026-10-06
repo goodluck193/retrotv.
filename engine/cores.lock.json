@@ -1,0 +1,5 @@
+[
+  {"name":"fceumm","repository":"https://github.com/libretro/libretro-fceumm.git","revision":"236ccdfc911e84c60fea6b9d0699c2d440a8de14","jni":"jni","library":"libfceumm.so"},
+  {"name":"snes9x","repository":"https://github.com/libretro/snes9x.git","revision":"890b5d445538fe790aa3add3d5702c80f551e0ae","jni":"libretro/jni","library":"libsnes9x.so"},
+  {"name":"genesis","repository":"https://github.com/libretro/Genesis-Plus-GX.git","revision":"c2838c7dc4236fc2fe94e5dbd08b41486067918e","jni":"libretro/jni","library":"libgenesis.so"}
+]

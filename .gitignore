@@ -1,0 +1,16 @@
+.gradle/
+.engine/
+**/build/
+local.properties
+.idea/
+*.iml
+*.jks
+*.keystore
+.cores/
+app/src/main/jniLibs/**/*.so
+app/src/main/assets/licenses/fceumm/
+app/src/main/assets/licenses/snes9x/
+app/src/main/assets/licenses/genesis/
+
+# Deliberately public, test-only signing identity for consistent preview updates.
+!config/preview-test.keystore

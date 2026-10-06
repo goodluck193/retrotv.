@@ -1,0 +1,9 @@
+[
+  {
+    "name": "n64",
+    "repository": "https://github.com/libretro/mupen64plus-libretro-nx.git",
+    "revision": "12edd2c74a517ff86dfa8cfc71ad75e4c10486d5",
+    "jni": "libretro/jni",
+    "library": "libmupen64plus_next.so"
+  }
+]

@@ -1,12 +1,7 @@
 package com.retrotv.emu
 
-/**
- * Поддерживаемые консоли.
- *
- * maxRomBytes — жёсткий предел размера рома. Всё, что больше, — точно не ром
- * этой консоли (или битый файл), импорт будет остановлен. Это одна из защит,
- * чтобы случайно не залить в память ТВ огромный файл.
- */
+
+/** Supported consoles and strict per-file import limits. */
 enum class SystemType(
     val id: String,
     val title: String,
@@ -34,11 +29,22 @@ enum class SystemType(
         extensions = setOf("md", "gen", "bin", "smd"),
         maxRomBytes = 16L * 1024 * 1024,
         coreLibName = "libgenesis.so"
+    ),
+    N64(
+        id = "n64",
+        title = "Nintendo 64",
+        extensions = setOf("z64", "n64", "v64"),
+        maxRomBytes = 64L * 1024 * 1024,
+        coreLibName = "libmupen64plus_next.so"
     );
 
     companion object {
-        /** Абсолютный потолок на любой импортируемый файл (вторая линия защиты). */
+
         const val HARD_LIMIT_BYTES: Long = 32L * 1024 * 1024
+        const val N64_LIMIT_BYTES: Long = 64L * 1024 * 1024
+
+        fun sourceLimit(extension: String): Long =
+            if (extension == "zip" || extension in N64.extensions) N64_LIMIT_BYTES else HARD_LIMIT_BYTES
 
         fun fromFileName(name: String): SystemType? {
             val ext = name.substringAfterLast('.', "").lowercase()
@@ -48,11 +54,7 @@ enum class SystemType(
         fun fromId(id: String?): SystemType? = entries.firstOrNull { it.id == id }
     }
 
-    /**
-     * Проверка сигнатуры файла (магические байты), где это возможно.
-     * NES: заголовок "NES\x1A". Mega Drive (.md/.gen/.bin): строка "SEGA" по смещению 0x100.
-     * Для SNES и .smd надёжной сигнатуры нет — пропускаем проверку.
-     */
+
     fun looksLikeValidRom(header: ByteArray, ext: String): Boolean = when (this) {
         NES -> header.size >= 4 &&
                 header[0] == 'N'.code.toByte() &&
@@ -65,5 +67,11 @@ enum class SystemType(
         }
 
         SNES -> true
+        N64 -> header.size >= 4 && when (ext) {
+            "z64" -> header.take(4) == listOf(0x80, 0x37, 0x12, 0x40).map { it.toByte() }
+            "v64" -> header.take(4) == listOf(0x37, 0x80, 0x40, 0x12).map { it.toByte() }
+            "n64" -> header.take(4) == listOf(0x40, 0x12, 0x37, 0x80).map { it.toByte() }
+            else -> false
+        }
     }
 }
