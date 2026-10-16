@@ -48,7 +48,7 @@
     <string name="r_720">720p (recomendado para TV)</string>
     <string name="r_1080">1080p</string>
     <string name="r_native">Resolução nativa da tela</string>
-    <string name="rewind_opt">Retrocesso com prévia · segure o direcional ← · N64: L3</string>
+    <string name="rewind_opt">Retrocesso com prévia · segure o direcional ← · N64: R3</string>
     <string name="rew_on">Ativado</string>
     <string name="rew_off">Desativado</string>
     <string name="storage">Armazenamento</string>
@@ -67,7 +67,7 @@
     <string name="wallpaper_hint">Padrões estáticos repetidos. As proporções do padrão e do jogo são mantidas.</string>
     <string name="performance_hint">Pixels nítidos ou bilinear simples em 720p usam menos GPU. Experimente se o jogo ficar lento. Os fundos não têm animação.</string>
     <string name="controls">Controles DualSense</string>
-    <string name="controls_help">Analógico esquerdo: mover\nShare/Create: menu de pausa · ←: segurar para retroceder\nSoltar ←: continuar · ○: cancelar retrocesso\nSNES: ✕ B · ○ A · □ Y · △ X\nNES: ✕ B · ○ A · □ Turbo B · △ Turbo A\nSega: □ A · ✕ B · ○ C · △ Y\nL1/L2: SNES L / Sega X\nR1/R2: SNES R / Sega Z\nSega X/Y/Z: jogos de 6 botões.\nOptions: Start · L3: Select / Sega Mode\nAnalógico direito / R3: desativados (exceto botões C do N64)\nBack da TV também abre o menu.\n\nN64: analógico esquerdo + direcional: movimento; analógico direito: botões C\n✕: A · □: B · ○: C↓ · △: C↑\nL1: L · L2: Z · R1/R2: R · Options: Start\nSegurar L3: retroceder · Soltar L3: continuar · ○: cancelar</string>
+    <string name="controls_help">Analógico esquerdo: mover\nShare/Create: menu de pausa · ←: segurar para retroceder\nSoltar ←: continuar · ○: cancelar retrocesso\nSNES: ✕ B · ○ A · □ Y · △ X\nNES: ✕ B · ○ A · □ Turbo B · △ Turbo A\nSega: □ A · ✕ B · ○ C · △ Y\nL1/L2: SNES L / Sega X\nR1/R2: SNES R / Sega Z\nSega X/Y/Z: jogos de 6 botões.\nOptions: Start · R3: Select / Sega Mode\nAnalógico direito / L3: desativados (exceto botões C do N64)\nBack da TV também abre o menu.\n\nN64: analógico esquerdo + direcional: movimento; analógico direito: botões C\n✕: A · □: B · ○: C↓ · △: C↑\nL1: L · L2: Z · R1/R2: R · Options: Start\nSegurar R3: retroceder · Soltar R3: continuar · ○: cancelar</string>
     <string name="licenses">Sobre e licenças</string>
     <string name="legal_summary">Nenhum ROM de jogo é incluído ou baixado. Importe apenas jogos que você tenha direito de usar. Capas e nomes pertencem aos respectivos titulares; não há vínculo implícito. Snes9x e Genesis Plus GX restringem o uso comercial. Leia as licenças antes de redistribuir esta versão.</string>
     <string name="license_files">Textos das licenças de terceiros</string>
@@ -146,7 +146,7 @@
     <string name="cover_saved">Capa salva neste dispositivo.</string>
     <string name="cover_invalid">Escolha uma imagem de até 4 MiB (PNG, JPEG ou WebP).</string>
     <string name="cover_space">Espaço livre insuficiente para a capa.</string>
-    <string name="n64_game_hint">Share/Create: menu · Segurar L3: retroceder · Options: Start</string>
-    <string name="n64_rewind_help">Segurar L3: retroceder · Soltar L3: continuar · ○: cancelar</string>
+    <string name="n64_game_hint">Share/Create: menu · Segurar R3: retroceder · Options: Start</string>
+    <string name="n64_rewind_help">Segurar R3: retroceder · Soltar R3: continuar · ○: cancelar</string>
     <string name="n64_gles_required">Nintendo 64 requer OpenGL ES 3.0 nesta TV.</string>
 </resources>

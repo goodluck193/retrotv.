@@ -515,7 +515,7 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
         content.findViewById<Button>(R.id.btnExit).setOnClickListener { exitGame() }
         dialog.setOnKeyListener { _, code, event ->
             if (shareButton(event)) { menuButton.update(1, event.action == KeyEvent.ACTION_DOWN); return@setOnKeyListener true }
-            if (event.scanCode == 318 || code == KeyEvent.KEYCODE_BUTTON_THUMBR || code == KeyEvent.KEYCODE_BUTTON_THUMBL) true
+            if (event.scanCode == 317 || event.scanCode == 318 || code == KeyEvent.KEYCODE_BUTTON_THUMBR || code == KeyEvent.KEYCODE_BUTTON_THUMBL) true
             else when (code) {
                 KeyEvent.KEYCODE_BUTTON_B -> { if (event.action == KeyEvent.ACTION_UP) dialog.dismiss(); true }
                 KeyEvent.KEYCODE_BACK -> { if (event.action == KeyEvent.ACTION_UP) exitGame(); true }
@@ -555,12 +555,12 @@ class GameActivity : AppCompatActivity(), InputManager.InputDeviceListener {
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (exiting) return true
-        if (event.scanCode == 318 || event.keyCode == KeyEvent.KEYCODE_BUTTON_THUMBR) return true
+        if (event.scanCode == 317 || event.keyCode == KeyEvent.KEYCODE_BUTTON_THUMBL) return true
         if (!ready || menuShowing || protectingSave) return super.dispatchKeyEvent(event)
         val down = event.action == KeyEvent.ACTION_DOWN
         if (event.isFromSource(InputDevice.SOURCE_GAMEPAD)) controllerId = event.deviceId
         if (shareButton(event)) { menuButton.update(1, down); return true }
-        if (event.keyCode == KeyEvent.KEYCODE_BUTTON_THUMBL || (sonyTouchpad(event.device) && event.scanCode == 317)) {
+        if (event.keyCode == KeyEvent.KEYCODE_BUTTON_THUMBR || (sonyTouchpad(event.device) && event.scanCode == 318)) {
             if (isN64) rewindButton.update(1, down)
             else if (!rewinding) sendButton(KeyEvent.KEYCODE_BUTTON_SELECT, down)
             return true

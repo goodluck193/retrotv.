@@ -45,7 +45,8 @@ class N64Test {
         assertEquals(listOf(105 to true), events)
         input.clear(); input.clear()
         assertEquals(listOf(105 to true, 105 to false), events)
-        assertFalse(input.key(106, true)) // L3 belongs to rewind, never a core button.
+        assertFalse(input.key(107, true)) // R3 belongs to rewind, never a core button.
+        assertFalse(input.key(106, true)) // L3 is unused.
         assertFalse(input.key(109, true)) // Share belongs to the menu.
         assertEquals(109, N64Input.button(102)) // N64 L.
         assertEquals(104, N64Input.button(104)) // N64 Z.

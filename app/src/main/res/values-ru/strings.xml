@@ -48,7 +48,7 @@
     <string name="r_720">720p (рекомендуется для ТВ)</string>
     <string name="r_1080">1080p</string>
     <string name="r_native">Родное разрешение экрана</string>
-    <string name="rewind_opt">Перемотка с просмотром · удерживайте ← крестовины · N64: L3</string>
+    <string name="rewind_opt">Перемотка с просмотром · удерживайте ← крестовины · N64: R3</string>
     <string name="rew_on">Включена</string>
     <string name="rew_off">Выключена</string>
     <string name="storage">Память</string>
@@ -67,7 +67,7 @@
     <string name="wallpaper_hint">Повторяющиеся неподвижные узоры. Пропорции узора и игры сохраняются.</string>
     <string name="performance_hint">Чёткие пиксели или простое билинейное сглаживание в 720p меньше нагружают графику. Выберите их, если игра тормозит. Фоны без анимации.</string>
     <string name="controls">Управление DualSense</string>
-    <string name="controls_help">Левый стик: движение\nShare/Create: меню паузы · ←: удерживать для перемотки\nОтпустить ←: продолжить · ○: отменить перемотку\nSNES: ✕ B · ○ A · □ Y · △ X\nNES: ✕ B · ○ A · □ Турбо B · △ Турбо A\nSega: □ A · ✕ B · ○ C · △ Y\nL1/L2: SNES L / Sega X\nR1/R2: SNES R / Sega Z\nSega X/Y/Z работают в играх с шестью кнопками.\nOptions: Start · L3: Select / Sega Mode\nПравый стик / R3 отключены (кроме кнопок C для N64)\nBack на пульте тоже открывает меню.\n\nN64: левый стик + крестовина: движение; правый стик: кнопки C\n✕: A · □: B · ○: C↓ · △: C↑\nL1: L · L2: Z · R1/R2: R · Options: Start\nУдерживать L3: перемотка · Отпустить L3: продолжить · ○: отмена</string>
+    <string name="controls_help">Левый стик: движение\nShare/Create: меню паузы · ←: удерживать для перемотки\nОтпустить ←: продолжить · ○: отменить перемотку\nSNES: ✕ B · ○ A · □ Y · △ X\nNES: ✕ B · ○ A · □ Турбо B · △ Турбо A\nSega: □ A · ✕ B · ○ C · △ Y\nL1/L2: SNES L / Sega X\nR1/R2: SNES R / Sega Z\nSega X/Y/Z работают в играх с шестью кнопками.\nOptions: Start · R3: Select / Sega Mode\nПравый стик / L3 отключены (кроме кнопок C для N64)\nBack на пульте тоже открывает меню.\n\nN64: левый стик + крестовина: движение; правый стик: кнопки C\n✕: A · □: B · ○: C↓ · △: C↑\nL1: L · L2: Z · R1/R2: R · Options: Start\nУдерживать R3: перемотка · Отпустить R3: продолжить · ○: отмена</string>
     <string name="licenses">О приложении и лицензии</string>
     <string name="legal_summary">ROM игр не включены и не скачиваются. Добавляйте только игры, на использование которых у вас есть право. Обложки и названия консолей принадлежат правообладателям; приложение не связано с ними. Snes9x и Genesis Plus GX ограничивают коммерческое использование. Перед распространением прочитайте лицензии.</string>
     <string name="license_files">Тексты лицензий компонентов</string>
@@ -146,7 +146,7 @@
     <string name="cover_saved">Обложка сохранена на устройстве.</string>
     <string name="cover_invalid">Выберите изображение до 4 МиБ (PNG, JPEG или WebP).</string>
     <string name="cover_space">Недостаточно свободного места для обложки.</string>
-    <string name="n64_game_hint">Share/Create: меню · Удерживать L3: перемотка · Options: Start</string>
-    <string name="n64_rewind_help">Удерживать L3: перемотка · Отпустить L3: продолжить · ○: отмена</string>
+    <string name="n64_game_hint">Share/Create: меню · Удерживать R3: перемотка · Options: Start</string>
+    <string name="n64_rewind_help">Удерживать R3: перемотка · Отпустить R3: продолжить · ○: отмена</string>
     <string name="n64_gles_required">Nintendo 64 требует поддержки OpenGL ES 3.0 на телевизоре.</string>
 </resources>

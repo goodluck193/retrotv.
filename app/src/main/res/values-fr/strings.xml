@@ -48,7 +48,7 @@
     <string name="r_720">720p (recommandé pour TV)</string>
     <string name="r_1080">1080p</string>
     <string name="r_native">Résolution native de l’écran</string>
-    <string name="rewind_opt">Aperçu du retour arrière · maintenir ← de la croix · N64: L3</string>
+    <string name="rewind_opt">Aperçu du retour arrière · maintenir ← de la croix · N64: R3</string>
     <string name="rew_on">Activé</string>
     <string name="rew_off">Désactivé</string>
     <string name="storage">Stockage</string>
@@ -67,7 +67,7 @@
     <string name="wallpaper_hint">Motifs statiques répétés. Les proportions du motif et du jeu sont conservées.</string>
     <string name="performance_hint">Les pixels nets ou le bilinéaire simple en 720p sollicitent moins le GPU. Essayez-les en cas de ralentissement. Les fonds ne sont pas animés.</string>
     <string name="controls">Commandes DualSense</string>
-    <string name="controls_help">Stick gauche : déplacement\nShare/Create : menu pause · ← : maintenir pour rembobiner\nRelâcher ← : reprendre · ○ : annuler le retour\nSNES : ✕ B · ○ A · □ Y · △ X\nNES : ✕ B · ○ A · □ Turbo B · △ Turbo A\nSega : □ A · ✕ B · ○ C · △ Y\nL1/L2 : SNES L / Sega X\nR1/R2 : SNES R / Sega Z\nSega X/Y/Z : jeux à 6 boutons.\nOptions : Start · L3 : Select / Sega Mode\nStick droit / R3 : désactivés (sauf boutons C de N64)\nBack de la TV ouvre aussi le menu.\n\nN64 : stick gauche + croix : déplacement ; stick droit : boutons C\n✕: A · □: B · ○: C↓ · △: C↑\nL1: L · L2: Z · R1/R2: R · Options: Start\nMaintenir L3 : retour · Relâcher L3 : reprendre · ○ : annuler</string>
+    <string name="controls_help">Stick gauche : déplacement\nShare/Create : menu pause · ← : maintenir pour rembobiner\nRelâcher ← : reprendre · ○ : annuler le retour\nSNES : ✕ B · ○ A · □ Y · △ X\nNES : ✕ B · ○ A · □ Turbo B · △ Turbo A\nSega : □ A · ✕ B · ○ C · △ Y\nL1/L2 : SNES L / Sega X\nR1/R2 : SNES R / Sega Z\nSega X/Y/Z : jeux à 6 boutons.\nOptions : Start · R3 : Select / Sega Mode\nStick droit / L3 : désactivés (sauf boutons C de N64)\nBack de la TV ouvre aussi le menu.\n\nN64 : stick gauche + croix : déplacement ; stick droit : boutons C\n✕: A · □: B · ○: C↓ · △: C↑\nL1: L · L2: Z · R1/R2: R · Options: Start\nMaintenir R3 : retour · Relâcher R3 : reprendre · ○ : annuler</string>
     <string name="licenses">À propos et licences</string>
     <string name="legal_summary">Aucune ROM de jeu n’est incluse ni téléchargée. Importez uniquement des jeux que vous avez le droit d’utiliser. Les images et noms appartiennent à leurs titulaires ; aucune affiliation n’est revendiquée. Snes9x et Genesis Plus GX limitent l’usage commercial. Lisez les licences avant toute redistribution.</string>
     <string name="license_files">Textes des licences tierces</string>
@@ -146,7 +146,7 @@
     <string name="cover_saved">Jaquette enregistrée sur cet appareil.</string>
     <string name="cover_invalid">Choisissez une image de 4 Mio maximum (PNG, JPEG ou WebP).</string>
     <string name="cover_space">Espace libre insuffisant pour la jaquette.</string>
-    <string name="n64_game_hint">Share/Create : menu · Maintenir L3 : retour · Options : Start</string>
-    <string name="n64_rewind_help">Maintenir L3 : retour · Relâcher L3 : reprendre · ○ : annuler</string>
+    <string name="n64_game_hint">Share/Create : menu · Maintenir R3 : retour · Options : Start</string>
+    <string name="n64_rewind_help">Maintenir R3 : retour · Relâcher R3 : reprendre · ○ : annuler</string>
     <string name="n64_gles_required">Nintendo 64 nécessite OpenGL ES 3.0 sur ce téléviseur.</string>
 </resources>

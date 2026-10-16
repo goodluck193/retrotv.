@@ -1,9 +1,10 @@
-# Retro Console 1.7.0
+# Retro Console 1.7.1
 
 A personal, noncommercial retro gaming app for Android TV 8+. Play your own NES / Dendy, Super Nintendo, Sega Mega Drive and Nintendo 64 files with a DualSense controller. ARM 32-bit and 64-bit builds. **No games or game ROM downloads are included.**
 
 ## What changed
 
+- 1.7.1: Select / Sega Mode and N64 rewind moved from L3 to R3 (right stick click). L3 now does nothing. The Share/Create pause menu is unchanged.
 - A simpler library: select a game to resume its autosave. Hold ✕ / OK for favorites, restart or deletion. Search, recent games and console categories remain available.
 - DualSense controls tailored to left-stick play, with preview rewind on D-pad Left and pause on Share/Create.
 - Black side borders by default, plus five static backgrounds: Midnight, Quiet Grid, Dunes, Forest and Arcade. Game proportions are preserved. Each background repeats one small square vector tile at a fixed 120 dp size. Settings and gameplay use the same scale, with no stretching or animation.
@@ -19,13 +20,14 @@ A personal, noncommercial retro gaming app for Android TV 8+. Play your own NES 
 | Left stick | Movement, including diagonals |
 | ✕ ○ □ △ | Console face buttons; see the mapping below |
 | L2 / R2 | SNES L / R or Sega X / Z; L1 / R1 also work |
-| Options / L3 | Start / Select (NES, SNES, Sega) |
+| Options / R3 | Start / Select (NES, SNES, Sega) |
 | Share / Create | Pause menu |
 | Hold D-pad ← | Rewind with preview |
 | Left stick while rewinding | Adjust the selected moment; stops automatic scrubbing |
 | Release D-pad ← | Continue from the selected moment |
 | ○ or Back while rewinding | Cancel and return to the original moment |
-| Right stick / R3 | Disabled in NES, SNES and Sega |
+| Right stick | Disabled in NES, SNES and Sega |
+| L3 | Disabled |
 | TV remote Back | Pause; from the pause menu, return to the library without making a new save |
 | ○ in the pause menu | Resume |
 
@@ -42,7 +44,7 @@ Android exposes Sony touchpad clicks as mouse-button events on many kernels. Bot
 | L1 / L2 | Unused | L | X |
 | R1 / R2 | Unused | R | Z |
 | Options | Start | Start | Start |
-| L3 | Select | Select | Mode |
+| R3 | Select | Select | Mode |
 
 The face mapping translates Android's Xbox-style letter codes to RetroPad positions before passing them to LibretroDroid. NES dedicated turbo buttons are enabled for player 1; normal A/B are unchanged. NES shoulder buttons are ignored. Genesis Plus GX keeps its automatic 3/6-button detection for game compatibility; X/Y/Z and Mode only apply to six-button games. Holding a trigger and its matching shoulder together does not release the virtual button until both are released.
 
@@ -63,7 +65,7 @@ Mupen64Plus-Next is built separately for ARM32/ARM64 from `engine/n64.lock.json`
 | R1 or R2 | R |
 | Options | Start |
 | Share/Create | Pause menu |
-| Hold / release L3 | Preview rewind / resume from selection |
+| Hold / release R3 | Preview rewind / resume from selection |
 | ○ while rewinding | Cancel rewind |
 
 N64 snapshots are roughly 16 MiB before compression. Only N64 uses a checksummed compressed envelope, limited to 8 MiB packed / 32 MiB raw; it rejects corrupt or oversized payloads before restoration. Capture occurs every 2 seconds, reduced to every 4 seconds if capture is slow. The existing total history and memory-headroom limits still apply; rewind is cleared/disabled under pressure. N64 core creation, state/SRAM access and destruction run on its GL thread because its coroutine and graphics context cannot safely migrate between threads. [Core documentation](https://docs.libretro.com/library/mupen64plus/).
@@ -108,7 +110,7 @@ python3 scripts/audit_apk.py app/build/outputs/apk/preview/app-preview.apk
 
 Prepare the engine and cores before opening Android Studio. Engine patches live in `engine/libretrodroid.patch`; native audio/clock code in `native/`; exact core sources in `engine/cores.lock.json`. `scripts/update_cover_index.py` refreshes filename metadata during development; it never runs on the TV. Source trees for the current index are recorded in `engine/cover-sources.json`.
 
-The normal debug package remains `com.retrotv.emu` to preserve data compatibility when signed with your existing key. The installable **Retro Console** uses `com.retrotv.emu.preview.console`, with its own library and saves. Version 1.6.2 removed Preview from the launcher label and visible version while keeping the package ID and signature. Version 1.7.0 updates 1.6.0/1.6.1-preview and 1.6.2 in place and preserves their games and saves. The internal preview build-type/package names remain only for compatibility. It can coexist with older RetroTV installations, whose private data is separate. **Do not uninstall an older app to resolve a signing conflict: uninstalling deletes its private games and progress.**
+The normal debug package remains `com.retrotv.emu` to preserve data compatibility when signed with your existing key. The installable **Retro Console** uses `com.retrotv.emu.preview.console`, with its own library and saves. Version 1.6.2 removed Preview from the launcher label and visible version while keeping the package ID and signature. Version 1.7.1 updates 1.6.0/1.6.1-preview, 1.6.2 and 1.7.0 in place and preserves their games and saves. The internal preview build-type/package names remain only for compatibility. It can coexist with older RetroTV installations, whose private data is separate. **Do not uninstall an older app to resolve a signing conflict: uninstalling deletes its private games and progress.**
 
 Preview 1.6 introduces a consistent, deliberately public **test-only** key at `config/preview-test.keystore` (alias `androiddebugkey`, password `android`). Future previews can update this package with the same signature. This is not a production identity; anyone with the public key material can sign a preview build, so install only builds you trust. A release must use your own private signing key. Earlier CI-generated private debug keys are unavailable, so 1.6 cannot update those preview packages in place or read their private saves.
 

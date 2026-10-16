@@ -48,7 +48,7 @@
     <string name="r_720">720p (recommended for TVs)</string>
     <string name="r_1080">1080p</string>
     <string name="r_native">Native display resolution</string>
-    <string name="rewind_opt">Rewind preview · hold D-pad ← · N64: L3</string>
+    <string name="rewind_opt">Rewind preview · hold D-pad ← · N64: R3</string>
     <string name="rew_on">On</string>
     <string name="rew_off">Off</string>
     <string name="storage">Storage</string>
@@ -67,7 +67,7 @@
     <string name="wallpaper_hint">Repeating static patterns. The pattern and game keep their original proportions.</string>
     <string name="performance_hint">Sharp pixels or simple bilinear at 720p use less GPU power. Try these if a game slows down. Backgrounds have no animation.</string>
     <string name="controls">DualSense controls</string>
-    <string name="controls_help">Left stick: move\nShare/Create: pause menu · ←: hold to rewind\nRelease ←: continue · ○: cancel rewind\nSNES: ✕ B · ○ A · □ Y · △ X\nNES: ✕ B · ○ A · □ Turbo B · △ Turbo A\nSega: □ A · ✕ B · ○ C · △ Y\nL1/L2: SNES L / Sega X\nR1/R2: SNES R / Sega Z\nSega X/Y/Z work in 6-button games.\nOptions: Start · L3: Select / Sega Mode\nRight stick / R3: disabled (except N64 C-buttons)\nTV Back also opens the menu.\n\nN64: left stick + D-pad: movement; right stick: C-buttons\n✕: A · □: B · ○: C↓ · △: C↑\nL1: L · L2: Z · R1/R2: R · Options: Start\nHold L3: rewind · Release L3: continue · ○: cancel</string>
+    <string name="controls_help">Left stick: move\nShare/Create: pause menu · ←: hold to rewind\nRelease ←: continue · ○: cancel rewind\nSNES: ✕ B · ○ A · □ Y · △ X\nNES: ✕ B · ○ A · □ Turbo B · △ Turbo A\nSega: □ A · ✕ B · ○ C · △ Y\nL1/L2: SNES L / Sega X\nR1/R2: SNES R / Sega Z\nSega X/Y/Z work in 6-button games.\nOptions: Start · R3: Select / Sega Mode\nRight stick / L3: disabled (except N64 C-buttons)\nTV Back also opens the menu.\n\nN64: left stick + D-pad: movement; right stick: C-buttons\n✕: A · □: B · ○: C↓ · △: C↑\nL1: L · L2: Z · R1/R2: R · Options: Start\nHold R3: rewind · Release R3: continue · ○: cancel</string>
     <string name="licenses">About and licenses</string>
     <string name="legal_summary">No game ROMs are included or downloaded. Import only games you are entitled to use. Cover art and console names belong to their respective owners; no affiliation is implied. Snes9x and Genesis Plus GX restrict commercial use. Review the included licenses before redistributing this build.</string>
     <string name="license_files">Third-party license texts</string>
@@ -146,7 +146,7 @@
     <string name="cover_saved">Cover saved on this device.</string>
     <string name="cover_invalid">Choose a supported image up to 4 MiB (PNG, JPEG or WebP).</string>
     <string name="cover_space">Not enough free storage for a cover.</string>
-    <string name="n64_game_hint">Share/Create: menu · Hold L3: rewind · Options: Start</string>
-    <string name="n64_rewind_help">Hold L3: rewind · Release L3: continue · ○: cancel</string>
+    <string name="n64_game_hint">Share/Create: menu · Hold R3: rewind · Options: Start</string>
+    <string name="n64_rewind_help">Hold R3: rewind · Release R3: continue · ○: cancel</string>
     <string name="n64_gles_required">Nintendo 64 requires OpenGL ES 3.0 support on this TV.</string>
 </resources>

@@ -48,7 +48,7 @@
     <string name="r_720">720p (für Fernseher empfohlen)</string>
     <string name="r_1080">1080p</string>
     <string name="r_native">Native Bildschirmauflösung</string>
-    <string name="rewind_opt">Rückspulvorschau · Steuerkreuz ← halten · N64: L3</string>
+    <string name="rewind_opt">Rückspulvorschau · Steuerkreuz ← halten · N64: R3</string>
     <string name="rew_on">Ein</string>
     <string name="rew_off">Aus</string>
     <string name="storage">Speicher</string>
@@ -67,7 +67,7 @@
     <string name="wallpaper_hint">Wiederholte statische Muster. Die Proportionen von Muster und Spiel bleiben erhalten.</string>
     <string name="performance_hint">Scharfe Pixel oder einfaches bilineares Filtern bei 720p belasten die GPU weniger. Probiere sie bei ruckelnden Spielen. Die Hintergründe sind unbewegt.</string>
     <string name="controls">DualSense-Steuerung</string>
-    <string name="controls_help">Linker Stick: bewegen\nShare/Create: Pausenmenü · ←: zum Rückspulen halten\n← loslassen: fortsetzen · ○: Rückspulen abbrechen\nSNES: ✕ B · ○ A · □ Y · △ X\nNES: ✕ B · ○ A · □ Turbo B · △ Turbo A\nSega: □ A · ✕ B · ○ C · △ Y\nL1/L2: SNES L / Sega X\nR1/R2: SNES R / Sega Z\nSega X/Y/Z: Spiele mit 6 Tasten.\nOptions: Start · L3: Select / Sega Mode\nRechter Stick / R3: deaktiviert (außer N64-C-Tasten)\nTV-Back öffnet ebenfalls das Menü.\n\nN64: linker Stick + Steuerkreuz: Bewegung; rechter Stick: C-Tasten\n✕: A · □: B · ○: C↓ · △: C↑\nL1: L · L2: Z · R1/R2: R · Options: Start\nL3 halten: zurückspulen · L3 loslassen: fortsetzen · ○: abbrechen</string>
+    <string name="controls_help">Linker Stick: bewegen\nShare/Create: Pausenmenü · ←: zum Rückspulen halten\n← loslassen: fortsetzen · ○: Rückspulen abbrechen\nSNES: ✕ B · ○ A · □ Y · △ X\nNES: ✕ B · ○ A · □ Turbo B · △ Turbo A\nSega: □ A · ✕ B · ○ C · △ Y\nL1/L2: SNES L / Sega X\nR1/R2: SNES R / Sega Z\nSega X/Y/Z: Spiele mit 6 Tasten.\nOptions: Start · R3: Select / Sega Mode\nRechter Stick / L3: deaktiviert (außer N64-C-Tasten)\nTV-Back öffnet ebenfalls das Menü.\n\nN64: linker Stick + Steuerkreuz: Bewegung; rechter Stick: C-Tasten\n✕: A · □: B · ○: C↓ · △: C↑\nL1: L · L2: Z · R1/R2: R · Options: Start\nR3 halten: zurückspulen · R3 loslassen: fortsetzen · ○: abbrechen</string>
     <string name="licenses">Info und Lizenzen</string>
     <string name="legal_summary">Es werden keine Spiel-ROMs mitgeliefert oder heruntergeladen. Importiere nur Spiele, die du nutzen darfst. Cover und Konsolennamen gehören ihren Rechteinhabern; es besteht keine behauptete Verbindung. Snes9x und Genesis Plus GX beschränken die kommerzielle Nutzung. Lies vor der Weitergabe die Lizenzen.</string>
     <string name="license_files">Lizenztexte von Drittanbietern</string>
@@ -146,7 +146,7 @@
     <string name="cover_saved">Cover auf diesem Gerät gespeichert.</string>
     <string name="cover_invalid">Wähle ein Bild bis 4 MiB (PNG, JPEG oder WebP).</string>
     <string name="cover_space">Nicht genug freier Speicherplatz für ein Cover.</string>
-    <string name="n64_game_hint">Share/Create: Menü · L3 halten: zurück · Options: Start</string>
-    <string name="n64_rewind_help">L3 halten: zurückspulen · L3 loslassen: fortsetzen · ○: abbrechen</string>
+    <string name="n64_game_hint">Share/Create: Menü · R3 halten: zurück · Options: Start</string>
+    <string name="n64_rewind_help">R3 halten: zurückspulen · R3 loslassen: fortsetzen · ○: abbrechen</string>
     <string name="n64_gles_required">Nintendo 64 benötigt OpenGL ES 3.0 auf diesem Fernseher.</string>
 </resources>

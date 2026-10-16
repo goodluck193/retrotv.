@@ -10,7 +10,8 @@ class ControllerAndCoverTest {
         assertEquals(96, GamepadMapping.faceButton(97)) // Circle -> A (right)
         assertEquals(100, GamepadMapping.faceButton(99)) // Square -> Y (left)
         assertEquals(99, GamepadMapping.faceButton(100)) // Triangle -> X (top)
-        assertNull(GamepadMapping.faceButton(107)) // R3 must never become a face button.
+        assertNull(GamepadMapping.faceButton(107)) // R3 is Select/Mode, never a face button.
+        assertNull(GamepadMapping.faceButton(106)) // L3 is unused.
     }
     @Test fun menuPressOpensOnceUntilKeyAndHatAreReleased() {
         var opens = 0
