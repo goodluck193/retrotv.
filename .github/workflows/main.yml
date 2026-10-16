@@ -87,6 +87,13 @@ jobs:
         run: |
           "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/preview/app-preview.apk
           "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging app/build/outputs/apk/preview/app-preview.apk
+      - name: Report save-compatibility fingerprints
+        run: |
+          # Save states are bound to each core's SHA-256; an update keeps saves only if these match the installed APK.
+          apk=app/build/outputs/apk/preview/app-preview.apk
+          libs=$(for f in $(unzip -Z1 "$apk" 'lib/*' | sort); do echo "$(unzip -p "$apk" "$f" | sha256sum | cut -d' ' -f1)  $f"; done)
+          echo "::notice title=Native library SHA-256::${libs//$'\n'/%0A}"
+          echo "::notice title=Signer SHA-256::$("$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --print-certs "$apk" | grep -m1 'certificate SHA-256' | sed 's/.*: //')"
       - uses: actions/upload-artifact@v4
         with:
           name: RetroConsole-1.7.1-debug
